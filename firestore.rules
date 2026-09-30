@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global deny-all default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'bethelgoodgift3@gmail.com' ||
+        request.auth.token.email == 'ngokonkwo2020@gmail.com' ||
+        (request.auth.token.email_verified == true && (
+          request.auth.token.email == 'bethelgoodgift3@gmail.com' ||
+          request.auth.token.email == 'ngokonkwo2020@gmail.com'
+        ))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Hero Slides collection (Public read, admin write)
+    match /hero_slides/{slideId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() && isValidId(slideId);
+    }
+
+    // Bookings collection:
+    // Any parent can create a booking with safe limits; admin and signed-in parents can read their bookings.
+    match /bookings/{bookingId} {
+      allow get: if isValidId(bookingId) && (isAdmin() || (isSignedIn() && request.auth.token.email == resource.data.email));
+      allow list: if isAdmin() || (isSignedIn() && resource.data.email == request.auth.token.email) || isSignedIn();
+      allow create: if isValidId(bookingId)
+        && request.resource.data.parentName is string
+        && request.resource.data.parentName.size() <= 120
+        && request.resource.data.childName is string
+        && request.resource.data.childName.size() <= 120;
+      allow update, delete: if isAdmin() && isValidId(bookingId);
+    }
+
+    // Site settings document (Public read, admin write)
+    match /site_settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(settingId);
+    }
+
+    // Users collection for registered parents & educator
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin()) && isValidId(userId);
+      allow list: if isAdmin() || isSignedIn();
+      allow create: if isSignedIn() && (request.auth.uid == userId || isAdmin()) && isValidId(userId);
+      allow update: if isSignedIn() && isValidId(userId) && (isAdmin() || request.auth.uid == userId);
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    // Games collection for AI Game Studio and interactive games
+    match /games/{gameId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() && isValidId(gameId);
+    }
+
+    // Wallets collection for learner credits
+    match /wallets/{walletId} {
+      allow read: if true;
+      allow create: if isValidId(walletId);
+      allow update: if isValidId(walletId);
+      allow delete: if isAdmin() && isValidId(walletId);
+    }
+
+    // Transactions log
+    match /transactions/{txnId} {
+      allow read: if true;
+      allow create: if isValidId(txnId);
+      allow update, delete: if isAdmin() && isValidId(txnId);
+    }
+
+    // Top-up requests / orders collection
+    match /topup_requests/{requestId} {
+      allow read: if true;
+      allow create: if isValidId(requestId);
+      allow update, delete: if isAdmin() && isValidId(requestId);
+    }
+  }
+}

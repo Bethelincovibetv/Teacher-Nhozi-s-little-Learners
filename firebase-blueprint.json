@@ -1,0 +1,257 @@
+{
+  "entities": {
+    "HeroSlide": {
+      "title": "HeroSlide",
+      "description": "Carousel slide for the interactive hero section.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique slide ID"
+        },
+        "headline": {
+          "type": "string",
+          "description": "Primary slide headline",
+          "maxLength": 200
+        },
+        "subtitle": {
+          "type": "string",
+          "description": "Supporting explanatory text",
+          "maxLength": 500
+        },
+        "kicker": {
+          "type": "string",
+          "description": "Unboxed category kicker",
+          "maxLength": 100
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "Image asset path or URL",
+          "maxLength": 500
+        },
+        "ctaText": {
+          "type": "string",
+          "description": "Primary action button text",
+          "maxLength": 60
+        },
+        "ctaAction": {
+          "type": "string",
+          "description": "Action target e.g. booking, programs, activities",
+          "maxLength": 50
+        },
+        "order": {
+          "type": "number",
+          "description": "Sorting display order"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO date string"
+        }
+      },
+      "required": ["headline", "subtitle", "imageUrl"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "Trial lesson or program consultation enquiry.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Booking ID"
+        },
+        "parentName": {
+          "type": "string",
+          "description": "Parent or guardian full name",
+          "maxLength": 120
+        },
+        "childName": {
+          "type": "string",
+          "description": "Child full name",
+          "maxLength": 120
+        },
+        "childAge": {
+          "type": "string",
+          "description": "Child age or date of birth",
+          "maxLength": 50
+        },
+        "currentClass": {
+          "type": "string",
+          "description": "Current school class or grade",
+          "maxLength": 100
+        },
+        "learningArea": {
+          "type": "string",
+          "description": "Requested program focus",
+          "maxLength": 120
+        },
+        "preferredSchedule": {
+          "type": "string",
+          "description": "Preferred lesson day and time",
+          "maxLength": 120
+        },
+        "whatsappNumber": {
+          "type": "string",
+          "description": "Contact WhatsApp phone number",
+          "maxLength": 50
+        },
+        "email": {
+          "type": "string",
+          "description": "Contact email address",
+          "maxLength": 120
+        },
+        "message": {
+          "type": "string",
+          "description": "Additional notes or learning goals",
+          "maxLength": 1000
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the enquiry",
+          "enum": ["new", "contacted", "scheduled", "completed"],
+          "maxLength": 30
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp"
+        }
+      },
+      "required": ["parentName", "childName", "whatsappNumber", "learningArea"]
+    },
+    "SiteSettings": {
+      "title": "SiteSettings",
+      "description": "Global operational settings managed by administrator.",
+      "type": "object",
+      "properties": {
+        "whatsappNumber": {
+          "type": "string",
+          "description": "Active WhatsApp Business contact number",
+          "maxLength": 50
+        },
+        "supportEmail": {
+          "type": "string",
+          "description": "Support email address",
+          "maxLength": 120
+        },
+        "announcement": {
+          "type": "string",
+          "description": "Top announcement text banner",
+          "maxLength": 250
+        },
+        "tutorPhotoUrl": {
+          "type": "string",
+          "description": "Profile photograph of Teacher Ngozi",
+          "maxLength": 200000
+        },
+        "tutorTitle": {
+          "type": "string",
+          "description": "Professional title of the educator",
+          "maxLength": 150
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp"
+        }
+      }
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Registered user profile with role and wallet link.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "description": "User email address", "maxLength": 120 },
+        "displayName": { "type": "string", "description": "Parent or Student Name", "maxLength": 120 },
+        "childName": { "type": "string", "description": "Child learner name", "maxLength": 120 },
+        "childAge": { "type": "string", "description": "Child age or school class", "maxLength": 50 },
+        "role": { "type": "string", "description": "admin or parent", "enum": ["admin", "parent"] },
+        "walletId": { "type": "string", "description": "Linked wallet ID" },
+        "createdAt": { "type": "string", "description": "ISO timestamp" }
+      },
+      "required": ["uid", "email", "role", "walletId"]
+    },
+    "EducationalGame": {
+      "title": "EducationalGame",
+      "description": "Interactive learning game (custom or AI-generated).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Game ID" },
+        "title": { "type": "string", "description": "Game title", "maxLength": 150 },
+        "category": { "type": "string", "description": "Subject category", "maxLength": 60 },
+        "description": { "type": "string", "description": "Game objective", "maxLength": 500 },
+        "costCredits": { "type": "number", "description": "Credits cost per play" },
+        "rewardStars": { "type": "number", "description": "Stars earned on victory" },
+        "icon": { "type": "string", "description": "Game icon representation", "maxLength": 50 },
+        "badge": { "type": "string", "description": "Badge description", "maxLength": 60 },
+        "difficulty": { "type": "string", "description": "Beginner, Intermediate, or Advanced" },
+        "mechanic": { "type": "string", "description": "Game mechanics type" },
+        "isAiGenerated": { "type": "boolean", "description": "Flag if created by AI Game Studio" },
+        "createdAt": { "type": "string", "description": "ISO timestamp" }
+      },
+      "required": ["id", "title", "costCredits", "rewardStars"]
+    },
+    "UserWallet": {
+      "title": "UserWallet",
+      "description": "Learner credit wallet for playing interactive educational games.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "User / Student ID" },
+        "studentName": { "type": "string", "description": "Student or Parent Name", "maxLength": 100 },
+        "email": { "type": "string", "description": "Associated email", "maxLength": 120 },
+        "credits": { "type": "number", "description": "Available game credits" },
+        "starsWon": { "type": "number", "description": "Total reward stars collected" },
+        "gamesPlayed": { "type": "number", "description": "Count of educational game sessions" },
+        "tier": { "type": "string", "description": "Learner tier status", "maxLength": 50 },
+        "totalDeposited": { "type": "number", "description": "Lifetime total deposited funds" },
+        "currency": { "type": "string", "description": "Preferred billing currency", "maxLength": 10 },
+        "updatedAt": { "type": "string", "description": "ISO timestamp" }
+      },
+      "required": ["id", "credits"]
+    },
+    "CreditTransaction": {
+      "title": "CreditTransaction",
+      "description": "Record of wallet credit/debit operations.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Transaction ID" },
+        "walletId": { "type": "string", "description": "Target wallet ID" },
+        "amount": { "type": "number", "description": "Positive for credit, negative for debit" },
+        "reason": { "type": "string", "description": "Description of activity or admin reason", "maxLength": 255 },
+        "performedBy": { "type": "string", "description": "admin or system or learner", "maxLength": 50 },
+        "type": { "type": "string", "description": "Transaction category", "maxLength": 50 },
+        "reference": { "type": "string", "description": "Unique payment/voucher reference", "maxLength": 100 },
+        "createdAt": { "type": "string", "description": "ISO timestamp" }
+      },
+      "required": ["walletId", "amount", "reason"]
+    }
+  },
+  "firestore": {
+    "/hero_slides/{slideId}": {
+      "schema": "HeroSlide",
+      "description": "Collection of homepage hero carousel slides."
+    },
+    "/bookings/{bookingId}": {
+      "schema": "Booking",
+      "description": "Collection of trial lesson enquiries submitted by parents."
+    },
+    "/site_settings/global": {
+      "schema": "SiteSettings",
+      "description": "Document holding site-wide contact info and operational parameters."
+    },
+    "/wallets/{walletId}": {
+      "schema": "UserWallet",
+      "description": "Collection of learner credit wallets."
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Collection of registered parent and educator user profiles."
+    },
+    "/games/{gameId}": {
+      "schema": "EducationalGame",
+      "description": "Collection of learning games created or generated by AI Game Studio."
+    },
+    "/transactions/{txnId}": {
+      "schema": "CreditTransaction",
+      "description": "Log of credit top-ups and game play debits."
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "Remix Teachers Ngozi Little Learners",
+  "description": "Premium online literacy and English coaching, building strong foundations for young learners through professional, personalised educational support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
