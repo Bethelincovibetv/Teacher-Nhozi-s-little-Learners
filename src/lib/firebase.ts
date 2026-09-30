@@ -28,6 +28,7 @@ export const auth = getAuth(app);
 export const ADMIN_EMAILS = [
   'bethelgoodgift3@gmail.com',
   'ngokonkwo2020@gmail.com',
+  'bethelchukwunyere1@gmail.com',
 ];
 
 export const ADMIN_EMAIL = 'ngokonkwo2020@gmail.com';

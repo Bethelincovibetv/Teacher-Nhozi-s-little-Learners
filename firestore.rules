@@ -15,9 +15,11 @@ service cloud.firestore {
       return isSignedIn() && (
         request.auth.token.email == 'bethelgoodgift3@gmail.com' ||
         request.auth.token.email == 'ngokonkwo2020@gmail.com' ||
+        request.auth.token.email == 'bethelchukwunyere1@gmail.com' ||
         (request.auth.token.email_verified == true && (
           request.auth.token.email == 'bethelgoodgift3@gmail.com' ||
-          request.auth.token.email == 'ngokonkwo2020@gmail.com'
+          request.auth.token.email == 'ngokonkwo2020@gmail.com' ||
+          request.auth.token.email == 'bethelchukwunyere1@gmail.com'
         ))
       );
     }
