@@ -21,7 +21,6 @@ import {
   googleSignIn,
   registerWithEmailPassword,
   loginWithEmailPassword,
-  ADMIN_EMAIL,
 } from '../lib/firebase';
 import { UserProfile } from '../types';
 
@@ -564,11 +563,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   )}
                 </button>
               </form>
-
-              <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl text-[11px] text-amber-900">
-                <strong>Educator Console:</strong> Sign in with{' '}
-                <span className="font-mono font-semibold">{ADMIN_EMAIL}</span> to unlock the Teacher Admin & Game Studio.
-              </div>
             </div>
           )}
         </div>
