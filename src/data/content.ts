@@ -1,4 +1,32 @@
 import { Program, ResourceArticle, HeroSlide } from '../types';
+import heroYoungLearnerImg from '../assets/images/hero_young_learner_1790773088166.jpg';
+import phonicsCardImg from '../assets/images/phonics_reading_card_1790773103393.jpg';
+import onlineSessionImg from '../assets/images/online_learning_session_1790773117016.jpg';
+import storyCornerImg from '../assets/images/story_reading_corner_1790773128394.jpg';
+
+export const APP_IMAGES = {
+  heroYoungLearner: heroYoungLearnerImg,
+  phonicsCard: phonicsCardImg,
+  onlineSession: onlineSessionImg,
+  storyCorner: storyCornerImg,
+};
+
+export const LOCAL_IMAGES: Record<string, string> = {
+  '/src/assets/images/hero_young_learner_1790773088166.jpg': heroYoungLearnerImg,
+  '/src/assets/images/phonics_reading_card_1790773103393.jpg': phonicsCardImg,
+  '/src/assets/images/online_learning_session_1790773117016.jpg': onlineSessionImg,
+  '/src/assets/images/story_reading_corner_1790773128394.jpg': storyCornerImg,
+};
+
+export function resolveImageUrl(url?: string): string {
+  if (!url) return heroYoungLearnerImg;
+  if (LOCAL_IMAGES[url]) return LOCAL_IMAGES[url];
+  if (url.includes('hero_young_learner')) return heroYoungLearnerImg;
+  if (url.includes('phonics_reading_card')) return phonicsCardImg;
+  if (url.includes('online_learning_session')) return onlineSessionImg;
+  if (url.includes('story_reading_corner')) return storyCornerImg;
+  return url;
+}
 
 export const WHATSAPP_CONFIG = {
   displayNumber: '+234 806 092 7203',
@@ -27,7 +55,7 @@ export const DEFAULT_HERO_SLIDES: HeroSlide[] = [
     headline: 'Helping Little Learners Build Strong Foundations for a Brighter Future',
     subtitle: 'Engaging online English, literacy, phonics and early-reading lessons designed to help children learn with confidence.',
     kicker: 'ONLINE LEARNING FOR AGES 3–12 · PHONICS & EARLY LITERACY · 1-ON-1 & GROUPS',
-    imageUrl: '/src/assets/images/hero_young_learner_1790773088166.jpg',
+    imageUrl: heroYoungLearnerImg,
     ctaText: 'Book a Trial Lesson',
     ctaAction: 'booking',
     order: 1,
@@ -37,7 +65,7 @@ export const DEFAULT_HERO_SLIDES: HeroSlide[] = [
     headline: 'Unlocking Early Reading Through Joyful Phonics Foundations',
     subtitle: 'Step-by-step sound blending, clear pronunciation, and personalized support that turns hesitant learners into enthusiastic readers.',
     kicker: 'EARLY READING MASTERY · SOUND BLENDING & DECODING · AGES 3–7',
-    imageUrl: '/src/assets/images/phonics_reading_card_1790773103393.jpg',
+    imageUrl: phonicsCardImg,
     ctaText: 'Explore Phonics Programs',
     ctaAction: 'programs',
     order: 2,
@@ -47,7 +75,7 @@ export const DEFAULT_HERO_SLIDES: HeroSlide[] = [
     headline: 'Interactive Virtual Classrooms Where Children Flourish',
     subtitle: 'Small groups and 1-on-1 sessions designed with modern digital pedagogy, engaging word games, and compassionate educator guidance.',
     kicker: 'CONFIDENT COMMUNICATION · LITERACY COMPREHENSION · AGES 5–12',
-    imageUrl: '/src/assets/images/online_learning_session_1790773117016.jpg',
+    imageUrl: onlineSessionImg,
     ctaText: 'Try Interactive Activities',
     ctaAction: 'activities',
     order: 3,
@@ -71,7 +99,7 @@ export const PROGRAMS_DATA: Program[] = [
       'Expressive creative writing & story building',
       'Confident spoken English & verbal articulation',
     ],
-    image: '/src/assets/images/online_learning_session_1790773117016.jpg',
+    image: onlineSessionImg,
   },
   {
     id: 'phonics-early-reading',
@@ -88,7 +116,7 @@ export const PROGRAMS_DATA: Program[] = [
       'Clear pronunciation & expressive speaking',
       'Transition from sounds to independent sentence reading',
     ],
-    image: '/src/assets/images/phonics_reading_card_1790773103393.jpg',
+    image: phonicsCardImg,
   },
   {
     id: 'reading-support',
@@ -105,7 +133,7 @@ export const PROGRAMS_DATA: Program[] = [
       'Fostering a genuine, self-driven love for books',
       'Parental reading guidance & at-home reading routines',
     ],
-    image: '/src/assets/images/story_reading_corner_1790773128394.jpg',
+    image: storyCornerImg,
   },
   {
     id: 'personalised-online-learning',
@@ -122,7 +150,7 @@ export const PROGRAMS_DATA: Program[] = [
       'Regular transparent parent progress check-ins',
       'Interactive digital manipulatives and gamified exercises',
     ],
-    image: '/src/assets/images/hero_young_learner_1790773088166.jpg',
+    image: heroYoungLearnerImg,
   },
   {
     id: 'igbo-language-learning',
@@ -139,7 +167,7 @@ export const PROGRAMS_DATA: Program[] = [
       'Conversational confidence and heritage connection',
       'Supportive environment for diaspora and bilingual families',
     ],
-    image: '/src/assets/images/phonics_reading_card_1790773103393.jpg',
+    image: phonicsCardImg,
     isSpecial: true,
   },
 ];

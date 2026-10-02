@@ -35,6 +35,7 @@ import {
   Upload,
   Volume2,
   BookOpen,
+  Lock,
 } from 'lucide-react';
 import {
   collection,
@@ -44,14 +45,14 @@ import {
   onSnapshot,
 } from 'firebase/firestore';
 import { User as FirebaseUser } from 'firebase/auth';
-import { db, googleSignIn, logout, getAccessToken } from '../lib/firebase';
+import { db, loginWithEmailPassword, googleSignIn, logout, getAccessToken, isUserAdminEmail } from '../lib/firebase';
 import { sendGmailMessage, fetchRecentEnquiries, sendBookingConfirmationEmails } from '../lib/gmail';
 import { creditWallet, debitWallet, approveTopUpRequest, rejectTopUpRequest } from '../lib/wallet';
 import { generateEducationalGameWithAI, GenerateGameParams } from '../lib/aiGameGenerator';
 import { audioVoice } from '../lib/audioVoice';
 import { compressImage } from '../lib/imageCompressor';
 import { HeroSlide, BookingRecord, SiteSettings, UserWallet, CreditTransaction, EducationalGame, UserProfile, TopUpRequest } from '../types';
-import { DEFAULT_HERO_SLIDES, getWhatsAppUrl, WHATSAPP_CONFIG } from '../data/content';
+import { DEFAULT_HERO_SLIDES, getWhatsAppUrl, WHATSAPP_CONFIG, resolveImageUrl } from '../data/content';
 
 interface AdminDashboardProps {
   isOpen: boolean;
@@ -75,6 +76,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [showAdminSignInModal, setShowAdminSignInModal] = useState(false);
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
 
   // Firestore Hero Slides state
   const [slides, setSlides] = useState<HeroSlide[]>(DEFAULT_HERO_SLIDES);
@@ -315,20 +319,48 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setTimeout(() => setWalletFeedback(null), 4000);
   };
 
-  // Handle Google Auth for Admin
-  const handleAdminSignIn = async () => {
+  // Handle Email Auth for Admin
+  const handleAdminEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminEmail.trim() || !adminPassword) {
+      setAuthError('Please enter both admin email and password.');
+      return;
+    }
     setIsSigningIn(true);
     setAuthError(null);
     try {
-      const result = await googleSignIn();
+      const result = await loginWithEmailPassword(adminEmail.trim(), adminPassword);
       if (result?.user) {
         onAuthChange(result.user);
+        setShowAdminSignInModal(false);
       }
     } catch (err: any) {
       setAuthError(err.message || 'Failed to authenticate');
     } finally {
       setIsSigningIn(false);
     }
+  };
+
+  // Handle Google Auth for Admin
+  const handleAdminGoogleSignIn = async () => {
+    setIsSigningIn(true);
+    setAuthError(null);
+    try {
+      const result = await googleSignIn();
+      if (result?.user) {
+        onAuthChange(result.user);
+        setShowAdminSignInModal(false);
+      }
+    } catch (err: any) {
+      setAuthError(err.message || 'Failed to authenticate with Google');
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
+
+  const handleAdminSignIn = () => {
+    setAuthError(null);
+    setShowAdminSignInModal(true);
   };
 
   const handleAdminSignOut = async () => {
@@ -355,6 +387,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setWalletFeedback(`Successfully debited -${debitAmount} from ${w.studentName}!`);
       setTimeout(() => setWalletFeedback(null), 3500);
       setSelectedWallet(null);
+    }
+  };
+
+  // Delete a specific user profile & wallet
+  const handleDeleteUserAccount = async (w: UserWallet, matchingUser?: UserProfile) => {
+    if (!window.confirm(`Permanently delete account for "${matchingUser?.childName || w.studentName || w.email}"?`)) return;
+    try {
+      if (matchingUser?.uid) {
+        await deleteDoc(doc(db, 'users', matchingUser.uid));
+      }
+      await deleteDoc(doc(db, 'wallets', w.id));
+      setWalletFeedback(`Successfully deleted account & wallet for ${w.studentName || w.id}`);
+      setTimeout(() => setWalletFeedback(null), 3500);
+    } catch (err: any) {
+      alert(`Delete error: ${err.message}`);
+    }
+  };
+
+  // Purge all test accounts (keeping admin accounts intact)
+  const handlePurgeAllTestAccounts = async () => {
+    if (!window.confirm('Are you sure you want to clean up and delete all non-admin user accounts and test wallets from Firestore?')) return;
+    try {
+      let count = 0;
+      for (const w of wallets) {
+        if (!isUserAdminEmail(w.email)) {
+          await deleteDoc(doc(db, 'wallets', w.id));
+          count++;
+        }
+      }
+      for (const u of usersList) {
+        if (!isUserAdminEmail(u.email)) {
+          await deleteDoc(doc(db, 'users', u.uid));
+          count++;
+        }
+      }
+      setWalletFeedback(`✨ Database cleaned! Purged ${count} test documents.`);
+      setTimeout(() => setWalletFeedback(null), 4000);
+    } catch (err: any) {
+      alert(`Purge error: ${err.message}`);
     }
   };
 
@@ -910,8 +981,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
                       />
                     </div>
-                    <div className="text-xs text-slate-400">
-                      Showing <strong>{filteredWallets.length}</strong> wallets
+                    <div className="flex items-center gap-3">
+                      <div className="text-xs text-slate-400">
+                        Showing <strong>{filteredWallets.length}</strong> wallets
+                      </div>
+                      <button
+                        onClick={handlePurgeAllTestAccounts}
+                        className="py-1.5 px-3 bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800/60 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
+                        title="Delete all non-admin test accounts and wallets to clean the database"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Purge Test Accounts</span>
+                      </button>
                     </div>
                   </div>
 
@@ -963,7 +1044,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               className="flex-1 py-2 px-3 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer"
                             >
                               <Coins className="w-3.5 h-3.5" />
-                              <span>Credit / Debit Wallet</span>
+                              <span>Credit / Debit</span>
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUserAccount(w, matchingUser)}
+                              className="p-2 bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 border border-rose-800/40 rounded-xl transition-colors cursor-pointer"
+                              title="Delete this learner account and wallet"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </div>
@@ -1354,7 +1442,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 {slides.map((s, idx) => (
                   <div key={s.id} className="bg-[#0D1829] border border-slate-800 rounded-2xl overflow-hidden flex flex-col justify-between">
                     <div className="relative aspect-[16/9]">
-                      <img src={s.imageUrl} alt={s.headline} className="w-full h-full object-cover" />
+                      <img
+                        src={resolveImageUrl(s.imageUrl)}
+                        alt={s.headline}
+                        onError={(e) => {
+                          e.currentTarget.src = resolveImageUrl();
+                        }}
+                        className="w-full h-full object-cover"
+                      />
                       <span className="absolute top-2 left-2 bg-black/70 px-2 py-0.5 rounded text-[10px] font-mono">
                         Slide #{idx + 1}
                       </span>
@@ -1611,6 +1706,115 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           )}
         </main>
       </div>
+
+      {/* Admin Email Sign-in Modal */}
+      {showAdminSignInModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
+          <div className="bg-[#0D1829] border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+            <button
+              onClick={() => setShowAdminSignInModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-bold">
+                <Shield className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-lg text-white">Educator Admin Sign-In</h3>
+                <p className="text-xs text-slate-400">Sign in with educator admin credentials</p>
+              </div>
+            </div>
+
+            {authError && (
+              <div className="mb-4 p-3 bg-rose-950/70 border border-rose-800 rounded-xl text-xs text-rose-300 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{authError}</span>
+              </div>
+            )}
+
+            {/* 1-Click Google Sign-In for Admin */}
+            <button
+              type="button"
+              onClick={handleAdminGoogleSignIn}
+              disabled={isSigningIn}
+              className="w-full py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-900 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-2.5 shadow-xs disabled:opacity-60 mb-3"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24">
+                <path
+                  fill="#EA4335"
+                  d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"
+                />
+                <path
+                  fill="#4285F4"
+                  d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12 0 14.8s.7 5.1 1.9 7.5l3.7-2.9c-.2-.7-.4-1.4-.4-2.1z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 16.9C3.7 20.6 7.5 23.5 12 23.5z"
+                />
+              </svg>
+              <span>1-Click Sign In with Google</span>
+            </button>
+
+            <div className="flex items-center gap-3 my-3 text-slate-500 text-[11px]">
+              <div className="flex-1 h-px bg-slate-800" />
+              <span>or sign in with email credentials</span>
+              <div className="flex-1 h-px bg-slate-800" />
+            </div>
+
+            <form onSubmit={handleAdminEmailSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Admin Email
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+                  <input
+                    type="email"
+                    required
+                    placeholder="admin@example.com"
+                    value={adminEmail}
+                    onChange={(e) => setAdminEmail(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Password
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+                  <input
+                    type="password"
+                    required
+                    placeholder="Enter admin password"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSigningIn}
+                className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-2"
+              >
+                {isSigningIn ? 'Verifying...' : 'Sign In to Admin Console'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

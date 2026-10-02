@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowRight, Check, Clock, UserCheck, Sparkles, BookOpen } from 'lucide-react';
 import { Program } from '../types';
-import { PROGRAMS_DATA, getWhatsAppUrl } from '../data/content';
+import { PROGRAMS_DATA, getWhatsAppUrl, resolveImageUrl } from '../data/content';
 
 interface ProgramsSectionProps {
   onSelectProgramForBooking: (programName: string) => void;
@@ -37,8 +37,11 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onSelectProgra
                 {/* Program Image with fallbacks */}
                 <div className="relative aspect-[16/9] bg-stone-100 overflow-hidden">
                   <img
-                    src={prog.image}
+                    src={resolveImageUrl(prog.image)}
                     alt={prog.title}
+                    onError={(e) => {
+                      e.currentTarget.src = resolveImageUrl();
+                    }}
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />

@@ -18,9 +18,9 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import {
-  googleSignIn,
   registerWithEmailPassword,
   loginWithEmailPassword,
+  googleSignIn,
 } from '../lib/firebase';
 import { UserProfile } from '../types';
 
@@ -74,6 +74,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const handleGoogleAuth = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await googleSignIn({
+        parentName: parentName.trim() || undefined,
+        childName: childName.trim() || undefined,
+        childAge: childAge || undefined,
+        phone: phone.trim() || undefined,
+        learningFocus: learningFocus || undefined,
+      });
+      if (res?.profile) {
+        onAuthSuccess(res.profile);
+        onClose();
+      }
+    } catch (err: any) {
+      setError(err.message || 'Google authentication could not be completed.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleRegisterWithEmail = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,28 +163,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       onClose();
     } catch (err: any) {
       setError(err.message || 'Failed to sign in. Please verify your credentials.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleAuth = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await googleSignIn({
-        parentName: parentName.trim() || undefined,
-        childName: childName.trim() || undefined,
-        childAge: childAge || undefined,
-        phone: phone.trim() || undefined,
-        learningFocus: learningFocus || undefined,
-      });
-      if (res?.profile) {
-        onAuthSuccess(res.profile);
-        onClose();
-      }
-    } catch (err: any) {
-      setError(err.message || 'Google authentication could not be completed.');
     } finally {
       setLoading(false);
     }
@@ -583,3 +583,4 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     </div>
   );
 };
+

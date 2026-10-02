@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, ChevronLeft, ChevronRight, MessageCircle, ShieldCheck, Sparkles, Heart } from 'lucide-react';
 import { HeroSlide } from '../types';
-import { getWhatsAppUrl } from '../data/content';
+import { getWhatsAppUrl, resolveImageUrl } from '../data/content';
 
 interface HeroSliderProps {
   slides: HeroSlide[];
@@ -141,8 +141,11 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({
                 <div className="aspect-[4/3] sm:aspect-[16/10] bg-stone-100 relative overflow-hidden w-full">
                   <img
                     key={activeSlide.imageUrl}
-                    src={activeSlide.imageUrl}
+                    src={resolveImageUrl(activeSlide.imageUrl)}
                     alt={activeSlide.headline}
+                    onError={(e) => {
+                      e.currentTarget.src = resolveImageUrl();
+                    }}
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover transition-opacity duration-500"
                   />

@@ -96,7 +96,9 @@ export function formatAuthError(error: any): string {
   const code = error?.code || '';
   switch (code) {
     case 'auth/email-already-in-use':
-      return 'An account is already registered with this email address. Please switch to "Sign In" or use Google Sign-In.';
+      return 'An account is already registered with this email address. Please switch to "Sign In".';
+    case 'auth/operation-not-allowed':
+      return 'Email/Password authentication is currently disabled in your Firebase project. Please enable Email/Password in Firebase Console > Authentication > Sign-in method.';
     case 'auth/invalid-email':
       return 'Please provide a valid email address (e.g. parent@example.com).';
     case 'auth/weak-password':
