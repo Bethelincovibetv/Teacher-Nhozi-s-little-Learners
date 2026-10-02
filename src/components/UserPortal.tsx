@@ -178,6 +178,37 @@ export const UserPortal: React.FC<UserPortalProps> = ({
   // Sound feedback state
   const [speakingSound, setSpeakingSound] = useState<string | null>(null);
 
+  // Children 3D Experience: Interactive Teacher Ngozi Companion State
+  const [teacherBubbleText, setTeacherBubbleText] = useState<string>(
+    'Welcome back! Tap me anytime to hear Teacher Ngozi cheer for you! 🌟'
+  );
+  const [isTeacherGreeting, setIsTeacherGreeting] = useState(false);
+
+  const handleTeacherNgoziGreet = () => {
+    audioVoice.playBubblePop();
+    audioVoice.playCoinReward();
+    setIsTeacherGreeting(true);
+    const greeting = `Hello my marvelous superstar, ${displayChildName}! Teacher Ngozi is right here cheering for you! Let's sound out our words and collect shiny stars today!`;
+    setTeacherBubbleText(greeting);
+    audioVoice.speakTeacherCheer(greeting, () => setIsTeacherGreeting(false));
+  };
+
+  const handleTeacherMagicWord = () => {
+    audioVoice.playBubblePop();
+    setIsTeacherGreeting(true);
+    const words = [
+      { sound: 's', word: 'SUN', tip: '/s/ makes the warm sunny sound!' },
+      { sound: 'c', word: 'CAT', tip: '/k/ makes the playful kitten sound!' },
+      { sound: 'r', word: 'ROCKET', tip: '/r/ zooms high into space!' },
+      { sound: 'a', word: 'APPLE', tip: '/æ/ is crunchy and sweet!' },
+      { sound: 'd', word: 'DOG', tip: '/d/ is for a loyal puppy!' },
+    ];
+    const picked = words[Math.floor(Math.random() * words.length)];
+    const tipMsg = `Teacher Ngozi's Magic Sound is /${picked.sound}/ as in ${picked.word}! ${picked.tip}`;
+    setTeacherBubbleText(tipMsg);
+    audioVoice.speakTeacherNgozi(tipMsg, () => setIsTeacherGreeting(false));
+  };
+
   // Load real transactions whenever wallet or wallet tab changes
   useEffect(() => {
     if (wallet?.id) {
@@ -315,7 +346,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
       setPhone(currentUserProfile.phone || '');
       setLearningFocus(currentUserProfile.learningFocus || 'Phonics & Early Reading');
       setPreferredSchedule(currentUserProfile.preferredSchedule || 'Weekend Mornings');
-      setMasteredSounds(currentUserProfile.masteredSounds || ['a', 'b', 'c', 's', 't']);
+      setMasteredSounds(currentUserProfile.masteredSounds || []);
     }
   }, [currentUserProfile]);
 
@@ -494,7 +525,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
   }
 
   return (
-    <div className="h-screen w-full bg-[#FAF9F5] text-slate-800 flex overflow-hidden antialiased selection:bg-[#E6F4EC] selection:text-[#1A5336]">
+    <div className="h-[100dvh] min-h-[100dvh] max-h-[100dvh] w-full max-w-full overflow-hidden flex flex-col md:flex-row relative bg-[#FAF9F5] text-slate-800 antialiased selection:bg-[#E6F4EC] selection:text-[#1A5336]">
       {/* MOBILE SIDEBAR OVERLAY */}
       {mobileSidebarOpen && (
         <div
@@ -727,20 +758,20 @@ export const UserPortal: React.FC<UserPortalProps> = ({
       </aside>
 
       {/* MAIN CONTENT WORKSPACE AREA */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden min-w-0 bg-[#FAF9F5]">
-        {/* Top App Header */}
-        <header className="h-16 sm:h-20 bg-white border-b border-stone-200 px-4 sm:px-8 flex items-center justify-between gap-4 shrink-0 shadow-2xs z-10">
-          <div className="flex items-center gap-3 min-w-0">
+      <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden min-w-0 max-w-full bg-[#FAF9F5]">
+        {/* Top App Header (Frame Safe & Mobile Responsive) */}
+        <header className="h-16 sm:h-20 bg-white border-b border-stone-200 px-2.5 sm:px-6 lg:px-8 flex items-center justify-between gap-2 shrink-0 shadow-2xs z-10 w-full max-w-full overflow-hidden">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             <button
               onClick={() => setMobileSidebarOpen(true)}
-              className="p-2 md:hidden rounded-xl bg-stone-100 text-slate-700 hover:bg-stone-200 cursor-pointer shrink-0"
+              className="p-2 md:hidden rounded-xl bg-stone-100 text-slate-700 hover:bg-stone-200 cursor-pointer shrink-0 min-w-[40px] min-h-[40px] flex items-center justify-center"
               aria-label="Open navigation menu"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400">
+            <div className="min-w-0 flex-1">
+              <div className="hidden sm:flex items-center gap-1.5 text-xs font-semibold text-slate-400">
                 <span className="text-[#1A5336] font-bold">Learner Hub</span>
                 <span>/</span>
                 <span className="text-slate-600 truncate">
@@ -753,7 +784,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                   {activeTab === 'profile' && 'Learner Profile Settings'}
                 </span>
               </div>
-              <h2 className="font-display font-extrabold text-sm sm:text-lg text-[#0F1E36] leading-tight truncate">
+              <h2 className="font-display font-extrabold text-xs sm:text-base lg:text-lg text-[#0F1E36] leading-tight truncate">
                 {activeTab === 'dashboard' && `Welcome back, ${displayChildName}! 🌟`}
                 {activeTab === 'wallet' && 'Official Learner Credit Wallet'}
                 {activeTab === 'games' && 'Child Sound & Interactive 3D Arcade'}
@@ -765,27 +796,27 @@ export const UserPortal: React.FC<UserPortalProps> = ({
             </div>
           </div>
 
-          {/* Top Header Quick Controls */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Top Header Quick Controls (Tight & responsive) */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {/* Live Wallet Chip */}
             <button
               onClick={() => {
                 setActivePortalGame(null);
                 setActiveTab('wallet');
               }}
-              className="flex items-center gap-1.5 bg-[#FAF9F5] hover:bg-amber-50/60 border border-stone-200 hover:border-amber-400 px-2.5 sm:px-3.5 py-1.5 rounded-xl transition-all cursor-pointer shadow-2xs"
+              className="flex items-center gap-1 sm:gap-1.5 bg-amber-50/80 hover:bg-amber-100/90 border border-amber-300/80 px-2 sm:px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-2xs active:translate-y-0.5 shrink-0"
             >
-              <Coins className="w-4 h-4 text-amber-500 fill-amber-400" />
+              <Coins className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 fill-amber-400 shrink-0" />
               <span className="font-mono font-black text-xs sm:text-sm text-[#0F1E36]">
                 {wallet?.credits ?? 0}
               </span>
-              <span className="text-[10px] uppercase font-bold text-emerald-800 hidden sm:inline">Credits</span>
+              <span className="text-[10px] uppercase font-bold text-emerald-800 hidden md:inline">Credits</span>
             </button>
 
-            {/* Kids Sound Toggle */}
+            {/* Kids Sound Toggle (Desktop/Tablet) */}
             <button
               onClick={() => audioVoice.toggleBackgroundMusic()}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
+              className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer active:translate-y-0.5"
               title="Toggle Children's Background Sound"
             >
               <Music className="w-3.5 h-3.5 text-amber-600" />
@@ -795,20 +826,21 @@ export const UserPortal: React.FC<UserPortalProps> = ({
             {/* Quick Booking CTA */}
             <button
               onClick={() => onOpenBooking('Phonics & Early Reading')}
-              className="px-3.5 py-1.5 bg-[#1A5336] hover:bg-[#133E28] text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer hidden sm:flex items-center gap-1.5"
+              className="px-2.5 sm:px-3.5 py-1.5 bg-[#1A5336] hover:bg-[#133E28] text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1.5 shrink-0 active:translate-y-0.5"
             >
-              <Calendar className="w-3.5 h-3.5 text-amber-300" />
-              <span>Book Lesson</span>
+              <Calendar className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+              <span className="hidden sm:inline">Book Lesson</span>
+              <span className="sm:hidden">Book</span>
             </button>
           </div>
         </header>
 
         {/* Scrollable Main Tab Content */}
-        <main className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 sm:py-8 w-full max-w-7xl mx-auto">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-6 lg:px-8 py-3.5 sm:py-6 w-full max-w-7xl mx-auto min-w-0">
         {rewardMsg && (
-          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl flex items-center justify-between text-xs sm:text-sm font-medium animate-fade-in">
-            <span>{rewardMsg}</span>
-            <button onClick={() => setRewardMsg('')} className="text-amber-700 font-bold hover:underline cursor-pointer">
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl flex items-center justify-between text-xs sm:text-sm font-medium animate-fade-in">
+            <span className="truncate pr-2">{rewardMsg}</span>
+            <button onClick={() => setRewardMsg('')} className="text-amber-700 font-bold hover:underline cursor-pointer shrink-0">
               Dismiss
             </button>
           </div>
@@ -816,7 +848,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
 
         {/* ACTIVE IN-PORTAL GAME PLAYER */}
         {activePortalGame && (
-          <div className="mb-10 animate-fade-in">
+          <div className="mb-6 sm:mb-8 animate-fade-in w-full max-w-full">
             <ActiveGamePlayer
               game={activePortalGame}
               wallet={wallet}
@@ -830,79 +862,175 @@ export const UserPortal: React.FC<UserPortalProps> = ({
           </div>
         )}
 
-        {/* TAB 1: DASHBOARD & DAILY QUEST */}
+        {/* TAB 1: DASHBOARD & 3D CHILDREN EXPERIENCE */}
         {activeTab === 'dashboard' && !activePortalGame && (
-          <div className="space-y-8 animate-fade-in">
-            {/* FEATURED CHILD SOUND PHONICS QUEST CARD */}
-            <div className="bg-gradient-to-br from-white via-emerald-50/40 to-amber-50/30 p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-sm">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                <div>
-                  <div className="flex items-center gap-2 text-xs font-bold text-[#1A5336] uppercase tracking-wide mb-2">
-                    <span className="text-base">👧</span>
-                    <span>TODAY'S SPECIAL: CHILD SOUND VOICE & PHONICS QUEST</span>
+          <div className="space-y-6 sm:space-y-8 animate-fade-in w-full max-w-full overflow-hidden">
+            {/* 3D INTERACTIVE TEACHER NGOZI COMPANION HERO BANNER */}
+            <div className="bg-gradient-to-br from-white via-emerald-50/50 to-amber-50/40 p-4 sm:p-6 lg:p-8 rounded-3xl border border-stone-200 shadow-sm relative overflow-hidden w-full max-w-full">
+              {/* Playful Floating Sparkle Badges */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 sm:gap-6 relative z-10">
+                <div className="flex items-start sm:items-center gap-3 sm:gap-5 min-w-0">
+                  {/* 3D Animated Teacher Avatar Mascot */}
+                  <div className="relative shrink-0">
+                    <div
+                      onClick={handleTeacherNgoziGreet}
+                      className={`w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-gradient-to-tr from-[#1A5336] via-emerald-500 to-amber-400 p-1 shadow-[0_6px_0_#14422B] hover:shadow-[0_8px_0_#14422B] hover:-translate-y-1 active:translate-y-1 active:shadow-[0_1px_0_#14422B] transition-all cursor-pointer select-none flex items-center justify-center ${
+                        isTeacherGreeting ? 'scale-105 rotate-2' : ''
+                      }`}
+                      title="Tap Teacher Ngozi to hear audio greeting!"
+                    >
+                      <div className="w-full h-full rounded-[20px] bg-[#0F1E36] flex items-center justify-center text-3xl sm:text-4xl shadow-inner">
+                        👩🏾‍🏫
+                      </div>
+                    </div>
+                    {isTeacherGreeting && (
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-amber-400 rounded-full border-2 border-white flex items-center justify-center text-[10px] animate-bounce">
+                        ⭐
+                      </span>
+                    )}
                   </div>
-                  <h2 className="text-2xl sm:text-3xl font-display font-bold text-[#0F1E36]">
-                    Kids Phonics Sound & Echo Quest
-                  </h2>
-                  <p className="text-xs sm:text-sm text-slate-600 mt-2 max-w-2xl leading-relaxed">
-                    Listen to cheerful child voice pronunciations, repeat the sound, and match cute animal picture cards. Earn <strong>+25 Stars</strong> and unlock special learner badges!
-                  </p>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-[#1A5336] uppercase tracking-wide mb-1">
+                      <span className="text-sm">👩🏾‍🏫</span>
+                      <span>TEACHER NGOZI INTERACTIVE READING COMPANION</span>
+                    </div>
+                    <h2 className="text-xl sm:text-2xl lg:text-3xl font-display font-black text-[#0F1E36] leading-tight">
+                      Hello, {displayChildName}! Ready to Read?
+                    </h2>
+
+                    {/* Interactive Speech Bubble */}
+                    <div className="mt-2.5 p-2.5 sm:p-3 bg-white/95 border border-emerald-500/30 rounded-2xl shadow-xs text-xs sm:text-sm text-slate-700 leading-relaxed relative">
+                      <p className="font-medium text-emerald-950">
+                        "{teacherBubbleText}"
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-3 flex-wrap">
+                {/* 3D Tactile Action Buttons */}
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-start lg:justify-end shrink-0 w-full lg:w-auto">
                   <button
-                    onClick={() => handleSpeakChildPhonics('c', 'cat')}
-                    className="px-4 py-3 bg-white border border-stone-200 hover:border-[#1A5336] text-[#1A5336] text-xs sm:text-sm font-bold rounded-2xl shadow-2xs flex items-center gap-2 transition-all cursor-pointer"
+                    onClick={handleTeacherNgoziGreet}
+                    className="flex-1 sm:flex-initial px-3.5 sm:px-4 py-2.5 sm:py-3 bg-gradient-to-b from-[#1A5336] to-[#14422B] text-white text-xs sm:text-sm font-bold rounded-2xl shadow-[0_4px_0_#0d2b1c] hover:-translate-y-0.5 active:translate-y-1 active:shadow-none transition-all cursor-pointer flex items-center justify-center gap-1.5"
                   >
-                    <Volume2 className="w-4 h-4 text-[#1A5336]" />
-                    <span>{speakingSound === 'c' ? 'Playing Child Voice...' : 'Listen to Child Sound'}</span>
+                    <Volume2 className="w-4 h-4 text-amber-300" />
+                    <span>Say Hello</span>
+                  </button>
+
+                  <button
+                    onClick={handleTeacherMagicWord}
+                    className="flex-1 sm:flex-initial px-3.5 sm:px-4 py-2.5 sm:py-3 bg-gradient-to-b from-amber-400 to-amber-500 text-slate-950 text-xs sm:text-sm font-black rounded-2xl shadow-[0_4px_0_#b45309] hover:-translate-y-0.5 active:translate-y-1 active:shadow-none transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <span>🪄 Magic Sound</span>
                   </button>
 
                   <button
                     onClick={() => setActivePortalGame(childSoundGame)}
-                    className="px-6 py-3 bg-[#0F1E36] hover:bg-[#162D4A] text-white text-xs sm:text-sm font-bold rounded-2xl shadow-md flex items-center gap-2 transition-all cursor-pointer"
+                    className="w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-3 bg-gradient-to-b from-[#0F1E36] to-[#0A1424] text-white text-xs sm:text-sm font-bold rounded-2xl shadow-[0_4px_0_#050a12] hover:-translate-y-0.5 active:translate-y-1 active:shadow-none transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
-                    <Play className="w-4 h-4 fill-white" />
-                    <span>Play Full Game (5 Cr)</span>
+                    <Play className="w-4 h-4 fill-amber-300 text-amber-300" />
+                    <span>Play Phonics Quest (5 Cr)</span>
                   </button>
                 </div>
               </div>
 
               {/* Phonics mastery progress bar */}
-              <div className="mt-8 pt-6 border-t border-stone-200/80">
-                <div className="flex items-center justify-between text-xs sm:text-sm mb-2 font-semibold">
-                  <span className="text-slate-700">Phonics Letters Mastered at Home:</span>
+              <div className="mt-6 pt-5 border-t border-stone-200/80">
+                <div className="flex items-center justify-between text-xs sm:text-sm mb-2 font-semibold flex-wrap gap-1">
+                  <span className="text-slate-700">Phonics Sounds Mastered with Teacher Ngozi:</span>
                   <span className="text-[#1A5336] font-mono font-bold">
                     {Math.round((masteredSounds.length / 26) * 100)}% ({masteredSounds.length}/26 Letters)
                   </span>
                 </div>
-                <div className="w-full h-3.5 bg-stone-200 rounded-full overflow-hidden">
+                <div className="w-full h-3.5 bg-stone-200 rounded-full overflow-hidden shadow-inner">
                   <div
-                    className="h-full bg-gradient-to-r from-emerald-500 to-[#1A5336] rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(100, (masteredSounds.length / 26) * 100)}%` }}
+                    className="h-full bg-gradient-to-r from-emerald-500 via-emerald-600 to-[#1A5336] rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(100, Math.max(8, (masteredSounds.length / 26) * 100))}%` }}
                   />
                 </div>
               </div>
             </div>
 
-            {/* 3 ACTION CARDS */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Card 1: 1-on-1 Class */}
-              <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-2xs flex flex-col justify-between">
+            {/* 3D TACTILE PHONICS SOUNDBOARD & TOY BOX BLOCKS */}
+            <div className="bg-white p-4 sm:p-6 lg:p-8 rounded-3xl border border-stone-200 shadow-2xs w-full max-w-full">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 sm:mb-6">
                 <div>
-                  <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center mb-4">
-                    <Calendar className="w-6 h-6" />
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-600 uppercase tracking-wider mb-0.5">
+                    <span>🎲</span>
+                    <span>3D PHONICS SOUNDBOARD & TACTILE TOY BLOCKS</span>
                   </div>
-                  <h3 className="font-bold text-base text-[#0F1E36]">1-on-1 Live Online Lessons</h3>
+                  <h3 className="font-display font-extrabold text-base sm:text-xl text-[#0F1E36]">
+                    Tap a 3D Sound Block to Hear the Pronunciation
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Press any colorful block to trigger real child & teacher phonics audio!
+                  </p>
+                </div>
+                <button
+                  onClick={() => setActiveTab('mastery')}
+                  className="text-xs font-bold text-[#1A5336] hover:underline flex items-center gap-1 self-start sm:self-auto cursor-pointer"
+                >
+                  <span>View All 26 Sounds</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* 8 3D Tactile Cubes with Physical Press Shadow */}
+              <div className="grid grid-cols-2 xs:grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-2.5 sm:gap-3.5 w-full">
+                {PHONICS_SOUNDS.slice(0, 8).map((item, idx) => {
+                  const isMastered = masteredSounds.includes(item.sound);
+                  // Cute distinctive palette for toy blocks
+                  const blockPalettes = [
+                    { bg: 'from-amber-400 to-amber-500', shadow: 'shadow-[0_5px_0_#b45309]', text: 'text-amber-950' },
+                    { bg: 'from-emerald-400 to-emerald-500', shadow: 'shadow-[0_5px_0_#047857]', text: 'text-emerald-950' },
+                    { bg: 'from-sky-400 to-sky-500', shadow: 'shadow-[0_5px_0_#0369a1]', text: 'text-sky-950' },
+                    { bg: 'from-rose-400 to-rose-500', shadow: 'shadow-[0_5px_0_#be123c]', text: 'text-rose-950' },
+                    { bg: 'from-purple-400 to-purple-500', shadow: 'shadow-[0_5px_0_#6b21a8]', text: 'text-purple-950' },
+                    { bg: 'from-teal-400 to-teal-500', shadow: 'shadow-[0_5px_0_#0f766e]', text: 'text-teal-950' },
+                    { bg: 'from-orange-400 to-orange-500', shadow: 'shadow-[0_5px_0_#c2410c]', text: 'text-orange-950' },
+                    { bg: 'from-indigo-400 to-indigo-500', shadow: 'shadow-[0_5px_0_#4338ca]', text: 'text-indigo-950' },
+                  ];
+                  const pal = blockPalettes[idx % blockPalettes.length];
+
+                  return (
+                    <button
+                      key={item.sound}
+                      onClick={() => handleSpeakChildPhonics(item.sound, item.word)}
+                      className={`p-3 rounded-2xl text-center border-2 border-white/60 bg-gradient-to-b ${pal.bg} ${pal.shadow} ${pal.text} hover:-translate-y-1 active:translate-y-1.5 active:shadow-none transition-all cursor-pointer select-none flex flex-col items-center justify-between min-h-[96px] w-full`}
+                      title={`Tap to sound out ${item.sound.toUpperCase()} for ${item.word}`}
+                    >
+                      <span className="text-2xl sm:text-3xl block drop-shadow-sm">{item.icon}</span>
+                      <span className="font-display font-black text-xl sm:text-2xl uppercase tracking-wider block">
+                        {item.sound}
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-tight block truncate w-full">
+                        {item.word}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 3 ACTION & LEARNING CARDS (Responsive & Frame-Safe) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 w-full max-w-full">
+              {/* Card 1: 1-on-1 Class */}
+              <div className="bg-white p-5 sm:p-6 rounded-3xl border border-stone-200 shadow-2xs flex flex-col justify-between w-full">
+                <div>
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center mb-3 sm:mb-4 shadow-2xs">
+                    <Calendar className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </div>
+                  <h3 className="font-display font-bold text-base text-[#0F1E36]">1-on-1 Live Online Lessons</h3>
                   <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                     {myBookings.length > 0
-                      ? `You have ${myBookings.length} lesson booking record(s) on file.`
+                      ? `You have ${myBookings.length} lesson booking record(s) on file with Teacher Ngozi.`
                       : 'Experience Teacher Ngozi’s interactive live reading lessons.'}
                   </p>
                 </div>
                 <button
                   onClick={() => onOpenBooking(learningFocus)}
-                  className="mt-6 w-full py-3 bg-stone-100 hover:bg-stone-200 text-[#0F1E36] font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  className="mt-5 w-full py-2.5 sm:py-3 bg-stone-100 hover:bg-stone-200 text-[#0F1E36] font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer min-h-[44px]"
                 >
                   <span>{myBookings.length > 0 ? 'Book Another Session' : 'Book a Trial Lesson'}</span>
                   <ChevronRight className="w-4 h-4" />
@@ -910,19 +1038,19 @@ export const UserPortal: React.FC<UserPortalProps> = ({
               </div>
 
               {/* Card 2: Games Arcade */}
-              <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-2xs flex flex-col justify-between">
+              <div className="bg-white p-5 sm:p-6 rounded-3xl border border-stone-200 shadow-2xs flex flex-col justify-between w-full">
                 <div>
-                  <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4">
-                    <Gamepad2 className="w-6 h-6" />
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-3 sm:mb-4 shadow-2xs">
+                    <Gamepad2 className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
-                  <h3 className="font-bold text-base text-[#0F1E36]">Child Sound Games Arcade</h3>
+                  <h3 className="font-display font-bold text-base text-[#0F1E36]">Child Sound Games Arcade</h3>
                   <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                    Play phonics asteroids, vowel hopping, and child echo match games.
+                    Play phonics asteroids, 3D vowel kingdom, and child echo match challenges.
                   </p>
                 </div>
                 <button
                   onClick={() => setActiveTab('games')}
-                  className="mt-6 w-full py-3 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  className="mt-5 w-full py-2.5 sm:py-3 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer min-h-[44px]"
                 >
                   <span>Open Arcade ({wallet?.credits ?? 0} Credits)</span>
                   <ChevronRight className="w-4 h-4" />
@@ -930,12 +1058,12 @@ export const UserPortal: React.FC<UserPortalProps> = ({
               </div>
 
               {/* Card 3: Direct WhatsApp */}
-              <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-2xs flex flex-col justify-between">
+              <div className="bg-white p-5 sm:p-6 rounded-3xl border border-stone-200 shadow-2xs flex flex-col justify-between w-full">
                 <div>
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-4">
-                    <MessageCircle className="w-6 h-6" />
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-3 sm:mb-4 shadow-2xs">
+                    <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
-                  <h3 className="font-bold text-base text-[#0F1E36]">Teacher Ngozi Live Desk</h3>
+                  <h3 className="font-display font-bold text-base text-[#0F1E36]">Teacher Ngozi Live Desk</h3>
                   <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                     Need lesson advice or custom scheduling? Message Teacher Ngozi directly on WhatsApp.
                   </p>
@@ -947,49 +1075,11 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                   )}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-6 w-full py-3 bg-[#E6F4EC] hover:bg-[#d8ece1] text-[#1A5336] font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors"
+                  className="mt-5 w-full py-2.5 sm:py-3 bg-[#E6F4EC] hover:bg-[#d8ece1] text-[#1A5336] font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors min-h-[44px] text-center"
                 >
-                  <span>Chat on WhatsApp (+234 806 092 7203)</span>
-                  <ChevronRight className="w-4 h-4" />
+                  <span className="truncate">Chat on WhatsApp</span>
+                  <ChevronRight className="w-4 h-4 shrink-0" />
                 </a>
-              </div>
-            </div>
-
-            {/* QUICK PHONICS AUDIO GRID */}
-            <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-2xs">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="font-bold text-lg text-[#0F1E36]">Quick Sound Pronunciation Player</h3>
-                  <p className="text-xs text-slate-500">Tap letters below to test the sound pronunciation with your child.</p>
-                </div>
-                <button
-                  onClick={() => setActiveTab('mastery')}
-                  className="text-xs font-bold text-[#1A5336] hover:underline flex items-center gap-1 cursor-pointer"
-                >
-                  <span>View All 26 Sounds</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
-                {PHONICS_SOUNDS.slice(0, 8).map((item) => {
-                  const isMastered = masteredSounds.includes(item.sound);
-                  return (
-                    <button
-                      key={item.sound}
-                      onClick={() => handleSpeakChildPhonics(item.sound, item.word)}
-                      className={`p-3 rounded-2xl text-center border transition-all cursor-pointer ${
-                        isMastered
-                          ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-2xs'
-                          : 'bg-stone-50 border-stone-200 text-slate-700 hover:border-slate-300'
-                      }`}
-                    >
-                      <span className="text-2xl block mb-1">{item.icon}</span>
-                      <span className="font-bold font-display text-base uppercase block">{item.sound}</span>
-                      <span className="text-[11px] text-slate-500 block truncate">{item.word}</span>
-                    </button>
-                  );
-                })}
               </div>
             </div>
           </div>
@@ -1043,12 +1133,12 @@ export const UserPortal: React.FC<UserPortalProps> = ({
             </div>
 
             {/* Wallet Sub-Tabs */}
-            <div className="flex bg-white p-1 rounded-2xl border border-stone-200 shadow-2xs text-xs font-semibold">
+            <div className="flex overflow-x-auto no-scrollbar scrollbar-none gap-1.5 bg-white p-1 rounded-2xl border border-stone-200 shadow-2xs text-xs font-semibold max-w-full">
               {[
-                { id: 'packages', label: 'Top-Up Packages', icon: ShoppingBag },
-                { id: 'stars', label: 'Exchange Stars for Credits', icon: Star },
-                { id: 'voucher', label: 'Voucher & Promo Code', icon: Gift },
-                { id: 'history', label: 'Real-Time Transaction Ledger', icon: History },
+                { id: 'packages', label: 'Top-Up Packages', shortLabel: 'Packages', icon: ShoppingBag },
+                { id: 'stars', label: 'Exchange Stars for Credits', shortLabel: 'Star Exchange', icon: Star },
+                { id: 'voucher', label: 'Voucher & Promo Code', shortLabel: 'Vouchers', icon: Gift },
+                { id: 'history', label: 'Real-Time Transaction Ledger', shortLabel: 'Ledger', icon: History },
               ].map((tab) => {
                 const Icon = tab.icon;
                 const isActive = walletSubTab === tab.id;
@@ -1056,14 +1146,15 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                   <button
                     key={tab.id}
                     onClick={() => setWalletSubTab(tab.id as any)}
-                    className={`flex-1 py-3 px-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    className={`flex-1 min-w-[95px] sm:min-w-0 py-2.5 sm:py-3 px-2 sm:px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer whitespace-nowrap active:translate-y-0.5 ${
                       isActive
                         ? 'bg-[#0F1E36] text-white shadow-xs'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-stone-50'
                     }`}
                   >
-                    <Icon className="w-4 h-4" />
-                    <span>{tab.label}</span>
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span className="hidden sm:inline">{tab.label}</span>
+                    <span className="sm:hidden text-[11px] font-bold">{tab.shortLabel}</span>
                   </button>
                 );
               })}
@@ -1897,7 +1988,7 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4">
                 {BADGES.map((b) => {
                   const isUnlocked =
                     b.unlocked ||
@@ -1908,19 +1999,21 @@ export const UserPortal: React.FC<UserPortalProps> = ({
                   return (
                     <div
                       key={b.id}
-                      className={`p-5 rounded-2xl text-center border transition-all ${
+                      className={`p-4 sm:p-5 rounded-2xl text-center border transition-all duration-300 select-none ${
                         isUnlocked
-                          ? 'bg-gradient-to-b from-amber-50 to-white border-amber-300 shadow-2xs'
+                          ? 'bg-gradient-to-b from-amber-100/90 via-amber-50/60 to-white border-2 border-amber-300 shadow-[0_8px_20px_-4px_rgba(245,158,11,0.25)] hover:-translate-y-1.5 hover:shadow-md'
                           : 'bg-stone-50 border-stone-200 opacity-60'
                       }`}
                     >
-                      <span className="text-4xl block mb-2">{b.icon}</span>
+                      <span className={`text-4xl block mb-2 transition-transform duration-300 ${isUnlocked ? 'scale-110 drop-shadow-sm' : 'grayscale'}`}>
+                        {b.icon}
+                      </span>
                       <h4 className="font-bold text-xs text-[#0F1E36] leading-tight">{b.title}</h4>
-                      <p className="text-[10px] text-slate-500 mt-1">{b.desc}</p>
+                      <p className="text-[10px] text-slate-500 mt-1 line-clamp-2">{b.desc}</p>
                       <span
                         className={`inline-block mt-2.5 text-[9px] font-bold uppercase px-2.5 py-0.5 rounded-full ${
                           isUnlocked
-                            ? 'bg-emerald-100 text-emerald-800'
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300/60 shadow-2xs'
                             : 'bg-stone-200 text-stone-600'
                         }`}
                       >
@@ -1933,64 +2026,64 @@ export const UserPortal: React.FC<UserPortalProps> = ({
             </div>
 
             {/* 26 Letter Sounds Grid */}
-            <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-2xs">
+            <div className="bg-white p-4 sm:p-8 rounded-3xl border border-stone-200 shadow-2xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
                 <div>
-                  <h2 className="text-lg font-bold text-[#0F1E36]">26 Alphabet Sounds Mastery Grid</h2>
+                  <h2 className="text-base sm:text-lg font-bold text-[#0F1E36]">26 Alphabet Sounds Mastery Grid</h2>
                   <p className="text-xs text-slate-500">
                     Check off sounds your child can pronounce and identify. Tap the speaker to hear Teacher Ngozi’s child-friendly sound.
                   </p>
                 </div>
-                <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3.5 py-1.5 rounded-full border border-emerald-200 self-start sm:self-auto">
+                <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3.5 py-1.5 rounded-full border border-emerald-200 self-start sm:self-auto font-mono">
                   {masteredSounds.length} / 26 Mastered
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-9 gap-3">
+              <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-8 gap-2.5 sm:gap-3.5 w-full">
                 {PHONICS_SOUNDS.map((item) => {
                   const isChecked = masteredSounds.includes(item.sound);
                   return (
                     <div
                       key={item.sound}
-                      className={`p-3.5 rounded-2xl border transition-all flex flex-col justify-between ${
+                      className={`p-3 rounded-2xl border-2 transition-all duration-150 flex flex-col justify-between select-none ${
                         isChecked
-                          ? 'bg-emerald-50/70 border-emerald-300 shadow-2xs'
-                          : 'bg-stone-50 border-stone-200 hover:border-stone-300'
+                          ? 'bg-gradient-to-b from-emerald-50 to-white border-emerald-400 shadow-[0_4px_0_#059669]'
+                          : 'bg-stone-50 border-stone-200 hover:border-amber-400 shadow-[0_4px_0_#e2e8f0]'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-base">{item.icon}</span>
+                        <span className="text-xl sm:text-2xl drop-shadow-xs">{item.icon}</span>
                         <button
                           type="button"
                           onClick={() => handleSpeakChildPhonics(item.sound, item.word)}
-                          className="p-1 rounded-md text-slate-400 hover:text-[#1A5336] hover:bg-stone-200/50 cursor-pointer"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-[#1A5336] hover:bg-stone-200/60 cursor-pointer active:scale-90 transition-transform"
                           title="Hear sound"
                         >
-                          <Volume2 className="w-3.5 h-3.5" />
+                          <Volume2 className="w-4 h-4 text-emerald-700" />
                         </button>
                       </div>
                       <div className="text-center my-1">
-                        <span className="font-display font-bold text-xl uppercase text-[#0F1E36] block">
+                        <span className="font-display font-black text-xl sm:text-2xl uppercase text-[#0F1E36] block">
                           {item.sound}
                         </span>
-                        <span className="text-[10px] text-slate-500 truncate block">{item.word}</span>
+                        <span className="text-[11px] font-semibold text-slate-600 truncate block">{item.word}</span>
                       </div>
                       <button
                         type="button"
                         onClick={() => handleToggleSoundMastery(item.sound)}
-                        className={`mt-2 w-full py-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer ${
+                        className={`mt-2 w-full py-1.5 px-1 rounded-xl text-[10px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer active:translate-y-0.5 shadow-xs min-h-[34px] ${
                           isChecked
-                            ? 'bg-emerald-600 text-white'
-                            : 'bg-white border border-stone-300 text-slate-600 hover:bg-stone-100'
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                            : 'bg-white border border-stone-300 text-slate-700 hover:bg-stone-100'
                         }`}
                       >
                         {isChecked ? (
                           <>
-                            <Check className="w-3 h-3" />
+                            <Check className="w-3.5 h-3.5" />
                             <span>Mastered</span>
                           </>
                         ) : (
-                          <span>Check</span>
+                          <span>Check Sound</span>
                         )}
                       </button>
                     </div>

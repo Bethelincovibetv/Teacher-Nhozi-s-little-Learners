@@ -529,8 +529,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  // Filtered Wallets
+  // Filtered Real Wallets (excluding unverified orphan/guest wallets)
   const filteredWallets = wallets.filter((w) => {
+    // Only real registered student wallets
+    const isOrphanGuest = (!w.email || w.email.trim() === '') && (w.studentName === 'Young Explorer' || w.id.startsWith('wallet-17'));
+    if (isOrphanGuest) return false;
+
     const q = walletSearchQuery.toLowerCase();
     return (
       w.studentName?.toLowerCase().includes(q) ||

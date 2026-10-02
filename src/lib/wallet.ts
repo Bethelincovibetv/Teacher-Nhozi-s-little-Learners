@@ -84,11 +84,20 @@ export async function getOrCreateLearnerWallet(
     walletId = localStorage.getItem(LOCAL_STORAGE_WALLET_KEY) || undefined;
   }
 
+  // If no wallet ID provided and no registered user, return transient empty state without polluting Firestore
   if (!walletId) {
-    walletId = `wallet-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(LOCAL_STORAGE_WALLET_KEY, walletId);
-    }
+    return {
+      id: 'unregistered',
+      studentName: studentName || 'Learner',
+      email: email || '',
+      credits: 0,
+      starsWon: 0,
+      gamesPlayed: 0,
+      tier: 'Free Starter',
+      totalDeposited: 0,
+      currency: 'NGN',
+      updatedAt: new Date().toISOString(),
+    };
   }
 
   try {

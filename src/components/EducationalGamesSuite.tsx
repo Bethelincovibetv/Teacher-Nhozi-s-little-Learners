@@ -1037,6 +1037,10 @@ export const ActiveGamePlayer: React.FC<ActiveGamePlayerProps> = ({
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [isChildSpeaking, setIsChildSpeaking] = useState(false);
+  const [isTeacherSpeaking, setIsTeacherSpeaking] = useState(false);
+  const [teacherMessage, setTeacherMessage] = useState<string>('Hello superstar! Let’s explore this reading quest together!');
+  const [highlightedClue, setHighlightedClue] = useState<string | null>(null);
+  const [isClapping, setIsClapping] = useState(false);
 
   const isChildSoundGame = game.mechanic === 'child_sound' || game.id === 'game-child-phonics-echo';
 
@@ -1048,8 +1052,8 @@ export const ActiveGamePlayer: React.FC<ActiveGamePlayerProps> = ({
       soundSpoken: 'Blast the asteroid with the sh sound, like in ship!',
       options: ['SH', 'CH', 'TH', 'PH'],
       correct: 'SH',
-      hint: 'Look for S and H together!',
-      explanation: 'Direct hit! Splendid reading!',
+      hint: 'Look for S and H together! /s/ + /h/ makes the quiet /sh/ sound.',
+      explanation: 'Direct hit! Splendid reading with Teacher Ngozi!',
     },
     {
       soundName: '/tʃ/ sound',
@@ -1057,8 +1061,8 @@ export const ActiveGamePlayer: React.FC<ActiveGamePlayerProps> = ({
       soundSpoken: 'Blast the asteroid with the ch sound, like in chair!',
       options: ['TH', 'CH', 'SH', 'WH'],
       correct: 'CH',
-      hint: 'Look for C and H together!',
-      explanation: 'Superb! CH makes the chair sound!',
+      hint: 'Look for C and H together! Like in chocolate and chair!',
+      explanation: 'Superb! CH makes the jolly chair sound!',
     },
     {
       soundName: '/eɪ/ sound',
@@ -1066,8 +1070,8 @@ export const ActiveGamePlayer: React.FC<ActiveGamePlayerProps> = ({
       soundSpoken: 'Blast the asteroid with the A-I sound, like in rain!',
       options: ['EE', 'OA', 'AI', 'OO'],
       correct: 'AI',
-      hint: 'A followed by I!',
-      explanation: 'Direct hit! Long A sound identified!',
+      hint: 'A followed by I makes the long A sound in rain and train!',
+      explanation: 'Direct hit! Long A sound masterfully identified!',
     },
     {
       soundName: '/θ/ sound',
@@ -1075,8 +1079,8 @@ export const ActiveGamePlayer: React.FC<ActiveGamePlayerProps> = ({
       soundSpoken: 'Blast the asteroid with the T-H sound, like in thumb!',
       options: ['CH', 'TH', 'SH', 'NG'],
       correct: 'TH',
-      hint: 'T followed by H!',
-      explanation: 'Brilliant listening!',
+      hint: 'T followed by H! Stick your tongue out gently: /th/!',
+      explanation: 'Brilliant phonics listening with Teacher Ngozi!',
     },
   ];
 
@@ -1085,30 +1089,94 @@ export const ActiveGamePlayer: React.FC<ActiveGamePlayerProps> = ({
   // Speak prompt on round change
   useEffect(() => {
     if (gameOver) return;
+    setHighlightedClue(null);
 
     if (isChildSoundGame) {
       const q = CHILD_SOUND_QUESTIONS[currentRound];
       if (q) {
+        setTeacherMessage(`Teacher Ngozi: Listen to the child voice: "${q.spokenChildPrompt}"`);
         setIsChildSpeaking(true);
         audioVoice.speakChildVoice(q.spokenChildPrompt, () => setIsChildSpeaking(false));
       }
     } else if (game.questions && game.questions.length > 0) {
       const q = game.questions[currentRound];
       if (q?.soundSpoken) {
-        audioVoice.speak(q.soundSpoken);
+        setTeacherMessage(`Teacher Ngozi: "${q.soundSpoken}"`);
+        setIsTeacherSpeaking(true);
+        audioVoice.speakTeacherNgozi(q.soundSpoken, () => setIsTeacherSpeaking(false));
       }
     } else {
       const q = asteroidQuestions[currentRound];
-      if (q) audioVoice.speak(q.soundSpoken);
+      if (q) {
+        setTeacherMessage(`Teacher Ngozi: "${q.soundSpoken}"`);
+        setIsTeacherSpeaking(true);
+        audioVoice.speakTeacherNgozi(q.soundSpoken, () => setIsTeacherSpeaking(false));
+      }
     }
   }, [game, currentRound, gameOver, isChildSoundGame]);
+
+  // Teacher Ngozi Interactive Clue Request
+  const handleAskTeacherNgozi = () => {
+    audioVoice.playBubblePop();
+    if (isChildSoundGame) {
+      const q = CHILD_SOUND_QUESTIONS[currentRound];
+      const hint = `Teacher Ngozi says: Think of ${q.targetWord}! It starts with the letter ${q.sound.toUpperCase()}!`;
+      setTeacherMessage(hint);
+      setHighlightedClue(q.sound.toUpperCase());
+      setIsTeacherSpeaking(true);
+      audioVoice.speakTeacherNgozi(hint, () => setIsTeacherSpeaking(false));
+    } else {
+      const q = questionsList[currentRound];
+      const hint = `Teacher Ngozi says: ${q.hint || `Look for the ${q.correct} sound!`}`;
+      setTeacherMessage(hint);
+      setHighlightedClue(q.correct);
+      setIsTeacherSpeaking(true);
+      audioVoice.speakTeacherNgozi(hint, () => setIsTeacherSpeaking(false));
+    }
+  };
+
+  // Sound it out slowly with Teacher Ngozi
+  const handleSlowPhonicsBreakdown = () => {
+    audioVoice.playBubblePop();
+    if (isChildSoundGame) {
+      const q = CHILD_SOUND_QUESTIONS[currentRound];
+      const breakdown = `Let's stretch the sounds with Teacher Ngozi: /${q.sound}/ ... /${q.sound}/ ... ${q.targetWord}!`;
+      setTeacherMessage(breakdown);
+      setIsTeacherSpeaking(true);
+      audioVoice.speakTeacherNgozi(breakdown, () => setIsTeacherSpeaking(false));
+    } else {
+      const q = questionsList[currentRound];
+      const breakdown = `Listen to Teacher Ngozi stretch the sound: ${q.soundName}! ${q.instruction}`;
+      setTeacherMessage(breakdown);
+      setIsTeacherSpeaking(true);
+      audioVoice.speakTeacherNgozi(breakdown, () => setIsTeacherSpeaking(false));
+    }
+  };
+
+  // Clap with Teacher
+  const handleClapWithTeacher = () => {
+    setIsClapping(true);
+    audioVoice.playSuccessChime();
+    audioVoice.playCoinReward();
+    setTeacherMessage('Teacher Ngozi is clapping for you! 👏 You are brilliant!');
+    setIsTeacherSpeaking(true);
+    audioVoice.speakTeacherCheer('You are brilliant! Keep shining, superstar!', () => {
+      setIsTeacherSpeaking(false);
+      setIsClapping(false);
+    });
+  };
 
   const handleChildSoundChoice = (isCorrect: boolean, cheer: string, optionSound: string, optionWord: string) => {
     if (isCorrect) {
       audioVoice.playBubblePop();
       audioVoice.playCoinReward();
+      setIsClapping(true);
       setIsChildSpeaking(true);
-      audioVoice.speakChildCheer(cheer, () => setIsChildSpeaking(false));
+      setTeacherMessage(`Teacher Ngozi: ${cheer} Spectacular reading!`);
+      audioVoice.speakChildCheer(cheer, () => {
+        setIsChildSpeaking(false);
+        setIsClapping(false);
+      });
       setScore((prev) => prev + 1);
 
       if (currentRound + 1 < CHILD_SOUND_QUESTIONS.length) {
@@ -1118,14 +1186,18 @@ export const ActiveGamePlayer: React.FC<ActiveGamePlayerProps> = ({
       } else {
         setTimeout(() => {
           audioVoice.playFanfare();
-          audioVoice.speakChildVoice(`Superstar! You won ${game.rewardStars} reward stars! You're a phonics hero!`);
+          const winMsg = `Hooray! What a marvelous star reader you are! You earned ${game.rewardStars} shiny stars with Teacher Ngozi!`;
+          setTeacherMessage(winMsg);
+          audioVoice.speakTeacherCheer(winMsg);
           onWinStars(game.rewardStars);
           setGameOver(true);
         }, 1200);
       }
     } else {
       audioVoice.playErrorBuzz();
-      audioVoice.speakChildVoice(`That's ${optionSound} for ${optionWord}! Try again, you can do it!`);
+      const retryMsg = `That was ${optionSound} for ${optionWord}! Teacher Ngozi believes in you, try again sweetheart!`;
+      setTeacherMessage(retryMsg);
+      audioVoice.speakChildVoice(retryMsg);
     }
   };
 
@@ -1134,64 +1206,138 @@ export const ActiveGamePlayer: React.FC<ActiveGamePlayerProps> = ({
     if (choice === q.correct) {
       audioVoice.playLaserShoot();
       audioVoice.playCoinReward();
-      audioVoice.speak(q.explanation || 'Direct hit! Splendid reading!');
+      setIsClapping(true);
+      const cheer = q.explanation || 'Splendid! That is the exact sound! Teacher Ngozi is so proud of you!';
+      setTeacherMessage(`Teacher Ngozi: "${cheer}"`);
+      audioVoice.speakTeacherCheer(cheer, () => setIsClapping(false));
       setScore((prev) => prev + 1);
 
       if (currentRound + 1 < questionsList.length) {
-        setCurrentRound((prev) => prev + 1);
+        setTimeout(() => {
+          setCurrentRound((prev) => prev + 1);
+        }, 800);
       } else {
-        audioVoice.playFanfare();
-        audioVoice.speak(`Victory! You cleared this mission and earned ${game.rewardStars} reward stars!`);
-        onWinStars(game.rewardStars);
-        setGameOver(true);
+        setTimeout(() => {
+          audioVoice.playFanfare();
+          const winMsg = `Victory, my superstar reader! You conquered this mission with Teacher Ngozi and earned ${game.rewardStars} shiny stars!`;
+          setTeacherMessage(winMsg);
+          audioVoice.speakTeacherNgozi(winMsg);
+          onWinStars(game.rewardStars);
+          setGameOver(true);
+        }, 800);
       }
     } else {
       audioVoice.playErrorBuzz();
-      audioVoice.speak(q.hint || 'Not quite that one. Contemplate the clue and try again!');
+      const encouragement = q.hint || 'Good try! Listen carefully to Teacher Ngozi and tap again!';
+      setTeacherMessage(`Teacher Ngozi: "${encouragement}"`);
+      audioVoice.speakTeacherNgozi(encouragement);
     }
   };
 
   return (
-    <div className="bg-[#0B1528] text-white rounded-3xl p-4 sm:p-8 md:p-10 border border-slate-700 shadow-2xl relative overflow-hidden w-full">
+    <div className="bg-[#0B1528] text-white rounded-3xl p-3.5 sm:p-6 md:p-8 border border-slate-700 shadow-2xl relative overflow-hidden w-full max-w-full">
       {/* 3D Scene Grid Backdrop */}
       <div className="absolute inset-0 bg-[radial-gradient(#1E3A63_1px,transparent_1px)] [background-size:20px_20px] opacity-40 pointer-events-none" />
 
       {/* Top HUD */}
-      <div className="relative z-10 flex flex-wrap items-center justify-between pb-4 sm:pb-6 border-b border-slate-800 mb-6 sm:mb-8 gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-400 text-slate-900 font-bold flex items-center justify-center text-lg shadow-sm">
+      <div className="relative z-10 flex flex-wrap items-center justify-between pb-3 sm:pb-5 border-b border-slate-800 mb-4 sm:mb-6 gap-2.5">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-500 text-slate-900 font-bold flex items-center justify-center text-lg sm:text-xl shadow-md shrink-0">
             {game.icon || '🎮'}
           </div>
-          <div>
-            <h3 className="font-display font-bold text-base sm:text-lg text-white">
+          <div className="min-w-0">
+            <h3 className="font-display font-bold text-sm sm:text-base md:text-lg text-white truncate">
               {game.title}
             </h3>
-            <span className="text-[11px] sm:text-xs text-emerald-400 font-semibold flex items-center gap-1.5">
-              <span className={`w-2 h-2 rounded-full bg-emerald-400 ${isChildSpeaking ? 'animate-ping' : ''}`} />
-              <span>{isChildSoundGame ? '👧 Live Child Sound Audio & Voice Active' : 'Voice-Over & 3D Audio Active'}</span>
+            <span className="text-[10px] sm:text-xs text-emerald-400 font-semibold flex items-center gap-1.5 truncate">
+              <span className={`w-2 h-2 rounded-full bg-emerald-400 ${isChildSpeaking || isTeacherSpeaking ? 'animate-ping' : ''}`} />
+              <span>{isChildSoundGame ? '👧 Child Voice & Sounds Active' : 'Teacher Ngozi Phonics Guide Active'}</span>
             </span>
           </div>
         </div>
 
         <button
           onClick={onClose}
-          className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition-colors cursor-pointer shrink-0"
         >
           Exit Game
         </button>
       </div>
 
+      {/* TEACHER NGOZI INTERACTIVE COMPANION BANNER (Center Stage) */}
+      <div className="relative z-10 mb-4 sm:mb-6 p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-[#0F271B]/90 via-[#133A27]/80 to-[#0F2236]/90 border border-emerald-500/40 shadow-lg flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+        {/* Animated Teacher Avatar */}
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="relative">
+            <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-[#1A5336] via-emerald-600 to-amber-400 p-0.5 shadow-md flex items-center justify-center transition-transform ${isTeacherSpeaking ? 'scale-105' : ''}`}>
+              <div className="w-full h-full rounded-[14px] bg-[#0F1E36] flex items-center justify-center text-2xl sm:text-3xl select-none">
+                👩🏾‍🏫
+              </div>
+            </div>
+            {(isTeacherSpeaking || isChildSpeaking) && (
+              <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-400 rounded-full border-2 border-[#0B1528] animate-pulse" />
+            )}
+          </div>
+
+          <div className="text-left sm:hidden">
+            <span className="text-[11px] font-bold text-amber-300 block">Teacher Ngozi</span>
+            <span className="text-[10px] text-emerald-300">Live Reading Guide</span>
+          </div>
+        </div>
+
+        {/* Live Teacher Speech Bubble */}
+        <div className="flex-1 min-w-0 text-left">
+          <div className="hidden sm:flex items-center gap-2 mb-0.5">
+            <span className="text-xs font-bold text-amber-300">Teacher Ngozi</span>
+            <span className="text-[10px] text-emerald-300 font-medium bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-500/30">
+              Interactive Audio Guide
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-100 font-medium leading-relaxed bg-black/25 p-2 sm:p-2.5 rounded-xl border border-white/10 break-words">
+            "{teacherMessage}"
+          </p>
+        </div>
+
+        {/* Quick Teacher Interactive Controls */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap justify-center sm:justify-end w-full sm:w-auto">
+          <button
+            onClick={handleAskTeacherNgozi}
+            className="px-2.5 sm:px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 text-[11px] font-bold rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1 active:translate-y-0.5"
+            title="Ask Teacher Ngozi for a hint"
+          >
+            <span>💡 Teacher Clue</span>
+          </button>
+
+          <button
+            onClick={handleSlowPhonicsBreakdown}
+            className="px-2.5 sm:px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1 active:translate-y-0.5"
+            title="Listen to phonics breakdown"
+          >
+            <Music className="w-3 h-3 text-amber-300" />
+            <span>Sound Out</span>
+          </button>
+
+          <button
+            onClick={handleClapWithTeacher}
+            className="px-2.5 sm:px-3 py-1.5 bg-white/10 hover:bg-white/20 text-slate-200 text-[11px] font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1 active:translate-y-0.5"
+            title="Clap with Teacher Ngozi"
+          >
+            <span>👏 Cheer</span>
+          </button>
+        </div>
+      </div>
+
       {/* GAME OVER CARD */}
       {gameOver ? (
-        <div className="relative z-10 py-8 sm:py-12 text-center max-w-md mx-auto animate-fade-in">
+        <div className="relative z-10 py-6 sm:py-10 text-center max-w-md mx-auto animate-fade-in">
           <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-amber-400/20 text-amber-300 flex items-center justify-center mx-auto mb-4 border border-amber-400/40 animate-bounce">
             <Trophy className="w-8 h-8 sm:w-10 sm:h-10" />
           </div>
           <h4 className="font-display font-black text-2xl sm:text-3xl text-white mb-2">
             {isChildSoundGame ? '🌟 Phonics Superstar!' : 'Mission Accomplished!'}
           </h4>
-          <p className="text-xs sm:text-sm text-slate-300 mb-6">
-            Spectacular work, Little Learner! You mastered these phonics sounds with joyful accuracy.
+          <p className="text-xs sm:text-sm text-slate-300 mb-6 leading-relaxed">
+            Spectacular work with Teacher Ngozi! You mastered these phonics sounds with joyful accuracy.
           </p>
 
           <div className="bg-slate-900/90 border border-slate-700 rounded-2xl p-4 mb-6 flex items-center justify-around">
@@ -1210,40 +1356,40 @@ export const ActiveGamePlayer: React.FC<ActiveGamePlayerProps> = ({
 
           <button
             onClick={onClose}
-            className="w-full py-3 px-6 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all shadow-lg cursor-pointer"
+            className="w-full py-3 px-6 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold rounded-2xl transition-all shadow-[0_6px_0_#0f5132] active:translate-y-1.5 active:shadow-none cursor-pointer"
           >
             Play Another Game
           </button>
         </div>
       ) : isChildSoundGame ? (
         /* SPECIAL CHILD SOUND & PHONICS ECHO MATCH INTERFACE */
-        <div className="relative z-10 max-w-3xl mx-auto text-center py-2 sm:py-4">
-          <div className="mb-6">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <span className="text-[11px] font-bold text-amber-400 tracking-wider uppercase bg-amber-950/60 border border-amber-500/30 px-3 py-0.5 rounded-full">
+        <div className="relative z-10 max-w-3xl mx-auto text-center py-1 sm:py-3">
+          <div className="mb-4 sm:mb-6">
+            <div className="flex items-center justify-center gap-2 mb-2 flex-wrap">
+              <span className="text-[10px] sm:text-[11px] font-bold text-amber-400 tracking-wider uppercase bg-amber-950/60 border border-amber-500/30 px-3 py-0.5 rounded-full">
                 Round {currentRound + 1} of {CHILD_SOUND_QUESTIONS.length}
               </span>
-              <span className="text-[11px] font-bold text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 px-3 py-0.5 rounded-full">
+              <span className="text-[10px] sm:text-[11px] font-bold text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 px-3 py-0.5 rounded-full">
                 Target: {CHILD_SOUND_QUESTIONS[currentRound].phonemeName}
               </span>
             </div>
 
-            <h4 className="font-display font-bold text-xl sm:text-2xl md:text-3xl text-white mb-2">
+            <h4 className="font-display font-bold text-lg sm:text-2xl md:text-3xl text-white mb-2 leading-tight">
               {CHILD_SOUND_QUESTIONS[currentRound].spokenChildPrompt}
             </h4>
 
             {/* Child Audio Prompt Buttons */}
-            <div className="flex items-center justify-center gap-3 mt-4 flex-wrap">
+            <div className="flex items-center justify-center gap-2 sm:gap-3 mt-3 flex-wrap">
               <button
                 onClick={() => {
                   const q = CHILD_SOUND_QUESTIONS[currentRound];
                   setIsChildSpeaking(true);
                   audioVoice.speakChildVoice(q.spokenChildPrompt, () => setIsChildSpeaking(false));
                 }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold shadow-[0_4px_0_#92400e] active:translate-y-1 active:shadow-none transition-all cursor-pointer"
               >
-                <Volume2 className="w-4 h-4" />
-                <span>Hear Child Voice Sound Again</span>
+                <Volume2 className="w-3.5 h-3.5" />
+                <span>Hear Sound Again</span>
               </button>
 
               <button
@@ -1252,46 +1398,53 @@ export const ActiveGamePlayer: React.FC<ActiveGamePlayerProps> = ({
                   setIsChildSpeaking(true);
                   audioVoice.speakChildPhonics(q.sound, q.targetWord, () => setIsChildSpeaking(false));
                 }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 cursor-pointer active:translate-y-0.5"
               >
-                <Music className="w-4 h-4 text-emerald-400" />
-                <span>Slow Phonics Breakdown</span>
+                <Music className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Slow Phonics</span>
               </button>
             </div>
           </div>
 
-          {/* Child Phonics Cards Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 my-6 sm:my-8">
-            {CHILD_SOUND_QUESTIONS[currentRound].options.map((opt) => (
-              <button
-                key={opt.letter}
-                onClick={() =>
-                  handleChildSoundChoice(
-                    opt.correct,
-                    CHILD_SOUND_QUESTIONS[currentRound].cheer,
-                    opt.sound,
-                    opt.word
-                  )
-                }
-                className="group relative rounded-2xl bg-gradient-to-b from-slate-800 to-slate-900 border-2 border-slate-700 hover:border-amber-400 hover:scale-105 transition-all duration-200 flex flex-col items-center justify-between p-4 sm:p-5 shadow-xl active:scale-95 cursor-pointer"
-              >
-                <span className="text-3xl sm:text-4xl block mb-2 group-hover:scale-110 transition-transform">
-                  {opt.icon}
-                </span>
-
-                <div className="text-center my-1">
-                  <span className="font-display font-black text-2xl sm:text-3xl text-white tracking-wide block group-hover:text-amber-300">
-                    {opt.letter}
+          {/* Child Phonics Cards Grid with 3D tactile depth */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4 my-4 sm:my-6">
+            {CHILD_SOUND_QUESTIONS[currentRound].options.map((opt) => {
+              const isClueMatch = highlightedClue && (opt.letter === highlightedClue || opt.sound.toUpperCase().includes(highlightedClue));
+              return (
+                <button
+                  key={opt.letter}
+                  onClick={() =>
+                    handleChildSoundChoice(
+                      opt.correct,
+                      CHILD_SOUND_QUESTIONS[currentRound].cheer,
+                      opt.sound,
+                      opt.word
+                    )
+                  }
+                  className={`group relative rounded-2xl bg-gradient-to-b from-slate-800 to-slate-900 border-2 transition-all duration-150 flex flex-col items-center justify-between p-3.5 sm:p-5 cursor-pointer select-none ${
+                    isClueMatch
+                      ? 'border-amber-400 shadow-[0_8px_0_#d97706] ring-4 ring-amber-400/40 -translate-y-1'
+                      : 'border-slate-700 hover:border-amber-400 shadow-[0_6px_0_#0f172a] hover:-translate-y-1 active:translate-y-1 active:shadow-[0_1px_0_#0f172a]'
+                  }`}
+                >
+                  <span className="text-3xl sm:text-4xl block mb-1 sm:mb-2 group-hover:scale-110 transition-transform drop-shadow-sm">
+                    {opt.icon}
                   </span>
-                  <span className="text-xs text-slate-300 font-semibold block">{opt.word}</span>
-                  <span className="text-[10px] text-emerald-400 font-mono block mt-0.5">{opt.sound} sound</span>
-                </div>
 
-                <div className="mt-2 w-full py-1 bg-slate-700/60 group-hover:bg-amber-500 group-hover:text-slate-950 text-slate-300 rounded-lg text-[10px] font-bold uppercase transition-colors">
-                  Tap Sound
-                </div>
-              </button>
-            ))}
+                  <div className="text-center my-1">
+                    <span className="font-display font-black text-2xl sm:text-3xl text-white tracking-wide block group-hover:text-amber-300">
+                      {opt.letter}
+                    </span>
+                    <span className="text-xs text-slate-300 font-semibold block">{opt.word}</span>
+                    <span className="text-[10px] text-emerald-400 font-mono block mt-0.5">{opt.sound} sound</span>
+                  </div>
+
+                  <div className="mt-2 w-full py-1.5 bg-slate-700/60 group-hover:bg-amber-400 group-hover:text-slate-950 text-slate-300 rounded-xl text-[10px] font-bold uppercase transition-colors">
+                    Tap Sound
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
           <p className="text-[11px] sm:text-xs text-slate-400">
@@ -1299,13 +1452,13 @@ export const ActiveGamePlayer: React.FC<ActiveGamePlayerProps> = ({
           </p>
         </div>
       ) : (
-        /* STANDARD QUESTIONS INTERFACE */
-        <div className="relative z-10 max-w-2xl mx-auto text-center py-2 sm:py-4">
-          <div className="mb-6">
-            <span className="text-[11px] sm:text-xs font-bold text-amber-400 tracking-wider uppercase block mb-1">
+        /* STANDARD QUESTIONS INTERFACE WITH 3D TACTILE CARDS */
+        <div className="relative z-10 max-w-2xl mx-auto text-center py-1 sm:py-3">
+          <div className="mb-4 sm:mb-6">
+            <span className="text-[10px] sm:text-xs font-bold text-amber-400 tracking-wider uppercase block mb-1">
               Round {currentRound + 1} of {questionsList.length}
             </span>
-            <p className="font-display font-bold text-lg sm:text-2xl text-white mb-3">
+            <p className="font-display font-bold text-base sm:text-xl md:text-2xl text-white mb-2 leading-tight">
               {questionsList[currentRound]?.instruction}
             </p>
             <button
@@ -1314,7 +1467,7 @@ export const ActiveGamePlayer: React.FC<ActiveGamePlayerProps> = ({
                   audioVoice.speak(questionsList[currentRound].soundSpoken);
                 }
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs cursor-pointer active:translate-y-0.5"
             >
               <Volume2 className="w-3.5 h-3.5 text-amber-400" />
               <span>Hear Voice Prompt Again</span>
@@ -1322,21 +1475,28 @@ export const ActiveGamePlayer: React.FC<ActiveGamePlayerProps> = ({
           </div>
 
           {/* 3D Floating Target Buttons */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 my-6 sm:my-8">
-            {questionsList[currentRound]?.options.map((opt) => (
-              <button
-                key={opt}
-                onClick={() => handleGenericChoice(opt)}
-                className="group relative aspect-square rounded-2xl bg-gradient-to-b from-slate-800 to-slate-900 border-2 border-slate-700 hover:border-amber-400 hover:scale-105 transition-all duration-200 flex flex-col items-center justify-center p-3 sm:p-4 shadow-xl active:scale-95 cursor-pointer"
-              >
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-700 group-hover:bg-amber-400 group-hover:text-slate-900 text-amber-300 font-bold text-xs flex items-center justify-center mb-1.5 sm:mb-2 transition-colors">
-                  🎯
-                </div>
-                <span className="font-display font-black text-xl sm:text-2xl md:text-3xl text-white tracking-wider group-hover:text-amber-300 transition-colors break-words text-center">
-                  {opt}
-                </span>
-              </button>
-            ))}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4 my-4 sm:my-6">
+            {questionsList[currentRound]?.options.map((opt) => {
+              const isClueMatch = highlightedClue && opt === highlightedClue;
+              return (
+                <button
+                  key={opt}
+                  onClick={() => handleGenericChoice(opt)}
+                  className={`group relative aspect-auto sm:aspect-square rounded-2xl bg-gradient-to-b from-slate-800 to-slate-900 border-2 transition-all duration-150 flex flex-col items-center justify-center p-3.5 sm:p-5 select-none cursor-pointer ${
+                    isClueMatch
+                      ? 'border-amber-400 shadow-[0_8px_0_#d97706] ring-4 ring-amber-400/40 -translate-y-1'
+                      : 'border-slate-700 hover:border-amber-400 shadow-[0_6px_0_#0f172a] hover:-translate-y-1 active:translate-y-1 active:shadow-[0_1px_0_#0f172a]'
+                  }`}
+                >
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-700 group-hover:bg-amber-400 group-hover:text-slate-900 text-amber-300 font-bold text-xs flex items-center justify-center mb-1.5 sm:mb-2 transition-colors">
+                    🎯
+                  </div>
+                  <span className="font-display font-black text-xl sm:text-2xl md:text-3xl text-white tracking-wider group-hover:text-amber-300 transition-colors break-words text-center">
+                    {opt}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           <p className="text-[11px] sm:text-xs text-slate-400">

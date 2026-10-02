@@ -582,6 +582,59 @@ class AudioVoiceEngine {
     this.speakChildVoice(message, onEnd);
   }
 
+  // --- TEACHER NGOZI SPECIALIZED EDUCATOR VOICE ---
+  public speakTeacherNgozi(
+    text: string,
+    onEnd?: () => void
+  ) {
+    if (this.isMuted || typeof window === 'undefined' || !window.speechSynthesis) {
+      if (onEnd) onEnd();
+      return;
+    }
+
+    this.duckBackgroundMusic(true);
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.pitch = 1.18; // warm, encouraging educator pitch
+    utterance.rate = 0.92; // gentle, reassuring pace for children
+    utterance.lang = 'en-GB';
+
+    const voices = window.speechSynthesis.getVoices();
+    const preferredVoice = voices.find(
+      (v) =>
+        (v.lang.startsWith('en-GB') || v.lang.startsWith('en')) &&
+        (v.name.includes('Natural') ||
+          v.name.includes('Google UK English Female') ||
+          v.name.includes('Serena') ||
+          v.name.includes('Fiona') ||
+          v.name.includes('Samantha') ||
+          v.name.includes('Karen'))
+    ) || voices.find((v) => v.lang.startsWith('en'));
+
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+    }
+
+    const handleEnd = () => {
+      this.duckBackgroundMusic(false);
+      if (onEnd) onEnd();
+    };
+
+    utterance.onend = handleEnd;
+    utterance.onerror = handleEnd;
+
+    window.speechSynthesis.speak(utterance);
+  }
+
+  public speakTeacherCheer(
+    message: string = 'Wonderful work, my superstar reader! You got it right!',
+    onEnd?: () => void
+  ) {
+    this.playSuccessChime();
+    this.speakTeacherNgozi(message, onEnd);
+  }
+
   public stopSpeaking() {
     this.duckBackgroundMusic(false);
     if (typeof window !== 'undefined' && window.speechSynthesis) {

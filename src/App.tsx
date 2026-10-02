@@ -86,8 +86,11 @@ export default function App() {
 
   // Listen to Wallet real-time changes
   useEffect(() => {
-    const walletId = currentUserProfile?.walletId || (typeof window !== 'undefined' ? localStorage.getItem('teachers_ngozi_learner_wallet_id') : null);
-    if (!walletId) return;
+    const walletId = currentUserProfile?.walletId;
+    if (!walletId) {
+      setWallet(null);
+      return;
+    }
 
     try {
       const unsub = onSnapshot(
