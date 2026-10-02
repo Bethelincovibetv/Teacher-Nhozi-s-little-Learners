@@ -324,10 +324,7 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <Footer
-        whatsappNumber={siteSettings.whatsappNumber}
-        onOpenAdmin={() => setAdminModalOpen(true)}
-      />
+      <Footer whatsappNumber={siteSettings.whatsappNumber} />
 
       {/* Floating WhatsApp Contact Button */}
       <WhatsAppFloatingButton whatsappNumber={siteSettings.whatsappNumber} />

@@ -4,10 +4,9 @@ import { getWhatsAppUrl, WHATSAPP_CONFIG } from '../data/content';
 
 interface FooterProps {
   whatsappNumber?: string;
-  onOpenAdmin?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ whatsappNumber, onOpenAdmin }) => {
+export const Footer: React.FC<FooterProps> = ({ whatsappNumber }) => {
   return (
     <footer className="bg-[#0A1322] text-slate-300 pt-16 pb-12 border-t border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -111,14 +110,6 @@ export const Footer: React.FC<FooterProps> = ({ whatsappNumber, onOpenAdmin }) =
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <p>© {new Date().getFullYear()} Teachers Ngozi Little Learners. All rights reserved.</p>
           <div className="flex items-center gap-4">
-            {onOpenAdmin && (
-              <button
-                onClick={onOpenAdmin}
-                className="hover:text-emerald-400 transition-colors underline"
-              >
-                Educator Portal & Admin
-              </button>
-            )}
             <span>Professional educator. Caring approach. Strong foundations.</span>
           </div>
         </div>

@@ -465,7 +465,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           ) : (
             <div className="space-y-4 pt-1">
               <p className="text-xs text-slate-600 leading-relaxed">
-                Sign in to manage your child's learning wallet, track phonics mastery badges, book one-on-one sessions, or open the Educator Administration Console.
+                Sign in to manage your child's learning wallet, track phonics mastery badges, book one-on-one sessions, and access your family portal.
               </p>
 
               {/* 1-Click Google Sign-In */}

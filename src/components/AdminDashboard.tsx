@@ -52,7 +52,7 @@ import { generateEducationalGameWithAI, GenerateGameParams } from '../lib/aiGame
 import { audioVoice } from '../lib/audioVoice';
 import { compressImage } from '../lib/imageCompressor';
 import { HeroSlide, BookingRecord, SiteSettings, UserWallet, CreditTransaction, EducationalGame, UserProfile, TopUpRequest } from '../types';
-import { DEFAULT_HERO_SLIDES, getWhatsAppUrl, WHATSAPP_CONFIG, resolveImageUrl } from '../data/content';
+import { getWhatsAppUrl, WHATSAPP_CONFIG, resolveImageUrl } from '../data/content';
 
 interface AdminDashboardProps {
   isOpen: boolean;
@@ -76,12 +76,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [showAdminSignInModal, setShowAdminSignInModal] = useState(false);
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
 
   // Firestore Hero Slides state
-  const [slides, setSlides] = useState<HeroSlide[]>(DEFAULT_HERO_SLIDES);
+  const [slides, setSlides] = useState<HeroSlide[]>([]);
   const [editingSlide, setEditingSlide] = useState<Partial<HeroSlide> | null>(null);
 
   // Firestore Bookings state
@@ -146,7 +145,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             list.sort((a, b) => (a.order || 0) - (b.order || 0));
             setSlides(list);
           } else {
-            setSlides(DEFAULT_HERO_SLIDES);
+            setSlides([]);
           }
         },
         (err) => {
@@ -331,8 +330,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     try {
       const result = await loginWithEmailPassword(adminEmail.trim(), adminPassword);
       if (result?.user) {
+        if (!isUserAdminEmail(result.user.email)) {
+          setAuthError(`The account (${result.user.email}) is not an authorized administrator. Regular accounts cannot access management.`);
+          onAuthChange(result.user);
+          return;
+        }
         onAuthChange(result.user);
-        setShowAdminSignInModal(false);
       }
     } catch (err: any) {
       setAuthError(err.message || 'Failed to authenticate');
@@ -348,19 +351,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     try {
       const result = await googleSignIn();
       if (result?.user) {
+        if (!isUserAdminEmail(result.user.email)) {
+          setAuthError(`The account (${result.user.email}) is not an authorized administrator.`);
+          onAuthChange(result.user);
+          return;
+        }
         onAuthChange(result.user);
-        setShowAdminSignInModal(false);
       }
     } catch (err: any) {
       setAuthError(err.message || 'Failed to authenticate with Google');
     } finally {
       setIsSigningIn(false);
     }
-  };
-
-  const handleAdminSignIn = () => {
-    setAuthError(null);
-    setShowAdminSignInModal(true);
   };
 
   const handleAdminSignOut = async () => {
@@ -539,6 +541,169 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   if (!isOpen) return null;
 
+  const isVerifiedAdmin = !!(currentUser && isUserAdminEmail(currentUser.email));
+
+  // ACCESS GATE: If not verified administrator, show restricted authentication screen
+  if (!isVerifiedAdmin) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md">
+        <div className="bg-[#0D1829] text-slate-100 rounded-3xl max-w-md w-full border border-slate-700/80 shadow-2xl relative p-6 sm:p-8">
+          <button
+            onClick={onClose}
+            className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-lg cursor-pointer"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-600 flex items-center justify-center text-white font-bold shadow-md shrink-0">
+              <Shield className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-display font-bold text-lg text-white">Educator Administration Console</h3>
+              <p className="text-xs text-emerald-400 font-medium">Restricted Access · Authorized Personnel Only</p>
+            </div>
+          </div>
+
+          {currentUser ? (
+            // A non-admin user is currently logged in
+            <div className="space-y-4 py-2">
+              <div className="p-4 bg-rose-950/60 border border-rose-800/80 rounded-2xl text-xs text-rose-300 space-y-2">
+                <div className="flex items-center gap-2 font-bold text-rose-200">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                  <span>Access Denied</span>
+                </div>
+                <p>
+                  You are signed in as <strong className="text-white font-mono">{currentUser.email}</strong>. This account does not possess educator administrator permissions.
+                </p>
+                <p className="text-[11px] text-rose-300/80 leading-relaxed">
+                  Regular learner and family accounts cannot access the management console.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2 pt-2">
+                <button
+                  onClick={handleAdminSignOut}
+                  className="w-full py-2.5 px-4 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Sign Out & Switch Account</span>
+                </button>
+                <button
+                  onClick={onClose}
+                  className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Return to Main Site
+                </button>
+              </div>
+            </div>
+          ) : (
+            // Unauthenticated user attempting to open admin console
+            <div className="space-y-4">
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Sign in with your verified educator administrator credentials to access live bookings, learner credit wallets, curriculum games, and operational parameters.
+              </p>
+
+              {authError && (
+                <div className="p-3 bg-rose-950/70 border border-rose-800 rounded-xl text-xs text-rose-300 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
+                  <span>{authError}</span>
+                </div>
+              )}
+
+              {/* 1-Click Google Sign-In for Admin */}
+              <button
+                type="button"
+                onClick={handleAdminGoogleSignIn}
+                disabled={isSigningIn}
+                className="w-full py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-900 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-2.5 shadow-xs disabled:opacity-60"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                  <path
+                    fill="#EA4335"
+                    d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"
+                  />
+                  <path
+                    fill="#4285F4"
+                    d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12 0 14.8s.7 5.1 1.9 7.5l3.7-2.9c-.2-.7-.4-1.4-.4-2.1z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 16.9C3.7 20.6 7.5 23.5 12 23.5z"
+                  />
+                </svg>
+                <span>{isSigningIn ? 'Authenticating...' : 'Sign In with Google'}</span>
+              </button>
+
+              <div className="flex items-center gap-3 my-2 text-slate-500 text-[11px]">
+                <div className="flex-1 h-px bg-slate-800" />
+                <span>or with administrator credentials</span>
+                <div className="flex-1 h-px bg-slate-800" />
+              </div>
+
+              <form onSubmit={handleAdminEmailSubmit} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Admin Email
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+                    <input
+                      type="email"
+                      required
+                      placeholder="admin@example.com"
+                      value={adminEmail}
+                      onChange={(e) => setAdminEmail(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+                    <input
+                      type="password"
+                      required
+                      placeholder="Enter admin password"
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSigningIn}
+                  className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-2"
+                >
+                  {isSigningIn ? 'Verifying...' : 'Sign In to Management Console'}
+                </button>
+              </form>
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full py-2 text-center text-xs text-slate-500 hover:text-slate-300 transition-colors"
+              >
+                Cancel and return to site
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md">
       <div className="bg-[#070D18] text-slate-100 rounded-3xl max-w-7xl w-full h-[94vh] flex overflow-hidden border border-slate-800 shadow-2xl relative">
@@ -629,35 +794,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* Sidebar Footer / Current Admin Status */}
           <div className="p-4 border-t border-slate-800/80 bg-[#08101E]">
-            {currentUser ? (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-xs">
-                    {currentUser.displayName?.[0] || 'N'}
-                  </div>
-                  <div className="text-xs truncate max-w-[120px]">
-                    <p className="font-bold text-white truncate">{currentUser.displayName || 'Teacher Ngozi'}</p>
-                    <p className="text-[10px] text-emerald-400 font-mono">Admin Verified</p>
-                  </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-xs">
+                  {currentUser?.displayName?.[0] || 'A'}
                 </div>
-                <button
-                  onClick={handleAdminSignOut}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition-colors"
-                  title="Sign Out"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
+                <div className="text-xs truncate max-w-[120px]">
+                  <p className="font-bold text-white truncate">{currentUser?.displayName || 'Educator Admin'}</p>
+                  <p className="text-[10px] text-emerald-400 font-mono">Admin Verified</p>
+                </div>
               </div>
-            ) : (
               <button
-                onClick={handleAdminSignIn}
-                disabled={isSigningIn}
-                className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                onClick={handleAdminSignOut}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition-colors"
+                title="Sign Out"
               >
-                <User className="w-3.5 h-3.5" />
-                <span>{isSigningIn ? 'Authenticating...' : 'Sign In as Admin'}</span>
+                <LogOut className="w-4 h-4" />
               </button>
-            )}
+            </div>
           </div>
         </aside>
 
@@ -676,13 +830,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">
                   MISSION // {activeMenu.toUpperCase()}
                 </span>
+                <span className="text-[10px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-800 px-2.5 py-0.5 rounded-full font-bold">
+                  {currentUser?.email}
+                </span>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
               <button
                 onClick={onClose}
-                className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors"
+                className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors cursor-pointer"
                 title="Exit Mission Control"
               >
                 <X className="w-5 h-5" />
@@ -716,7 +873,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <span>Interactive Games</span>
                     <Gamepad2 className="w-4 h-4 text-amber-400" />
                   </div>
-                  <span className="font-display font-black text-3xl text-amber-400">{4 + publishedGames.length}</span>
+                  <span className="font-display font-black text-3xl text-amber-400">{publishedGames.length}</span>
                 </div>
 
                 <div className="bg-[#0D1829] border border-slate-800 p-5 rounded-2xl">
@@ -1375,62 +1532,68 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
 
-              <div className="space-y-4">
-                {bookings.map((b) => (
-                  <div
-                    key={b.id}
-                    className="bg-[#0D1829] border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition-colors"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-display font-bold text-base text-white">{b.parentName}</h4>
-                          <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">
-                            Child: {b.childName} ({b.childAge})
-                          </span>
+              {bookings.length === 0 ? (
+                <div className="p-8 text-center bg-[#0D1829] border border-slate-800 rounded-2xl text-slate-400 text-xs">
+                  No lesson bookings recorded yet in Firestore. When parents submit bookings or enquiry forms, they will appear here in real-time.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {bookings.map((b) => (
+                    <div
+                      key={b.id}
+                      className="bg-[#0D1829] border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition-colors"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-display font-bold text-base text-white">{b.parentName}</h4>
+                            <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">
+                              Child: {b.childName} ({b.childAge})
+                            </span>
+                          </div>
+                          <p className="text-xs text-emerald-400 font-medium mt-1">
+                            {b.learningArea} · {b.currentClass} · {b.preferredSchedule}
+                          </p>
                         </div>
-                        <p className="text-xs text-emerald-400 font-medium mt-1">
-                          {b.learningArea} · {b.currentClass} · {b.preferredSchedule}
-                        </p>
+
+                        <div className="flex items-center gap-2">
+                          {b.emailSentToParent ? (
+                            <span className="text-xs bg-emerald-950 text-emerald-300 border border-emerald-800 px-2.5 py-1 rounded-lg flex items-center gap-1 font-semibold">
+                              <Check className="w-3.5 h-3.5" />
+                              <span>Parent Confirmed via Gmail</span>
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleTriggerGmailConfirmation(b)}
+                              className="text-xs bg-amber-600/20 text-amber-300 hover:bg-amber-600/30 border border-amber-600/40 px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-bold transition-colors cursor-pointer"
+                            >
+                              <Send className="w-3.5 h-3.5" />
+                              <span>Auto-Dispatch Gmail Confirmation</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        {b.emailSentToParent ? (
-                          <span className="text-xs bg-emerald-950 text-emerald-300 border border-emerald-800 px-2.5 py-1 rounded-lg flex items-center gap-1 font-semibold">
-                            <Check className="w-3.5 h-3.5" />
-                            <span>Parent Confirmed via Gmail</span>
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => handleTriggerGmailConfirmation(b)}
-                            className="text-xs bg-amber-600/20 text-amber-300 hover:bg-amber-600/30 border border-amber-600/40 px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-bold transition-colors cursor-pointer"
-                          >
-                            <Send className="w-3.5 h-3.5" />
-                            <span>Auto-Dispatch Gmail Confirmation</span>
-                          </button>
-                        )}
+                      <div className="bg-[#08101E] p-3 rounded-xl border border-slate-800/80 text-xs text-slate-300 space-y-1 mb-3">
+                        <p><strong>WhatsApp:</strong> {b.whatsappNumber} · <strong>Email:</strong> {b.email}</p>
+                        {b.message && <p className="italic text-slate-400">"{b.message}"</p>}
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-2 border-t border-slate-800">
+                        <a
+                          href={getWhatsAppUrl(`Hello ${b.parentName}, this is Teacher Ngozi following up on your booking for ${b.childName}.`, b.whatsappNumber)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 rounded-lg text-xs font-semibold flex items-center gap-1"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          <span>Chat WhatsApp</span>
+                        </a>
                       </div>
                     </div>
-
-                    <div className="bg-[#08101E] p-3 rounded-xl border border-slate-800/80 text-xs text-slate-300 space-y-1 mb-3">
-                      <p><strong>WhatsApp:</strong> {b.whatsappNumber} · <strong>Email:</strong> {b.email}</p>
-                      {b.message && <p className="italic text-slate-400">"{b.message}"</p>}
-                    </div>
-
-                    <div className="flex items-center gap-2 pt-2 border-t border-slate-800">
-                      <a
-                        href={getWhatsAppUrl(`Hello ${b.parentName}, this is Teacher Ngozi following up on your booking for ${b.childName}.`, b.whatsappNumber)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 rounded-lg text-xs font-semibold flex items-center gap-1"
-                      >
-                        <MessageCircle className="w-3.5 h-3.5" />
-                        <span>Chat WhatsApp</span>
-                      </a>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1438,43 +1601,50 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {activeMenu === 'slides' && (
             <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4">
               <h3 className="font-display font-bold text-base text-white">Hero Slides Management</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {slides.map((s, idx) => (
-                  <div key={s.id} className="bg-[#0D1829] border border-slate-800 rounded-2xl overflow-hidden flex flex-col justify-between">
-                    <div className="relative aspect-[16/9]">
-                      <img
-                        src={resolveImageUrl(s.imageUrl)}
-                        alt={s.headline}
-                        onError={(e) => {
-                          e.currentTarget.src = resolveImageUrl();
-                        }}
-                        className="w-full h-full object-cover"
-                      />
-                      <span className="absolute top-2 left-2 bg-black/70 px-2 py-0.5 rounded text-[10px] font-mono">
-                        Slide #{idx + 1}
-                      </span>
+              {slides.length === 0 ? (
+                <div className="p-8 text-center bg-[#0D1829] border border-slate-800 rounded-2xl text-slate-400 text-xs space-y-2">
+                  <p>No custom hero slides currently stored in Firestore.</p>
+                  <p className="text-[11px] text-slate-500">The site is currently presenting the default core hero slides on the homepage. Any custom slides saved in Firestore will appear here.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {slides.map((s, idx) => (
+                    <div key={s.id} className="bg-[#0D1829] border border-slate-800 rounded-2xl overflow-hidden flex flex-col justify-between">
+                      <div className="relative aspect-[16/9]">
+                        <img
+                          src={resolveImageUrl(s.imageUrl)}
+                          alt={s.headline}
+                          onError={(e) => {
+                            e.currentTarget.src = resolveImageUrl();
+                          }}
+                          className="w-full h-full object-cover"
+                        />
+                        <span className="absolute top-2 left-2 bg-black/70 px-2 py-0.5 rounded text-[10px] font-mono">
+                          Slide #{idx + 1}
+                        </span>
+                      </div>
+                      <div className="p-4">
+                        <span className="text-[10px] text-emerald-400 font-bold uppercase">{s.kicker}</span>
+                        <h4 className="font-display font-bold text-sm text-white mb-1">{s.headline}</h4>
+                        <p className="text-xs text-slate-400 line-clamp-2">{s.subtitle}</p>
+                      </div>
+                      <div className="p-3 bg-slate-900 border-t border-slate-800 flex items-center justify-between text-xs">
+                        <span className="text-slate-500">Action: {s.ctaAction}</span>
+                        <button
+                          onClick={async () => {
+                            if (window.confirm('Delete slide?')) {
+                              await deleteDoc(doc(db, 'hero_slides', s.id));
+                            }
+                          }}
+                          className="text-rose-400 hover:text-rose-300 cursor-pointer"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                    <div className="p-4">
-                      <span className="text-[10px] text-emerald-400 font-bold uppercase">{s.kicker}</span>
-                      <h4 className="font-display font-bold text-sm text-white mb-1">{s.headline}</h4>
-                      <p className="text-xs text-slate-400 line-clamp-2">{s.subtitle}</p>
-                    </div>
-                    <div className="p-3 bg-slate-900 border-t border-slate-800 flex items-center justify-between text-xs">
-                      <span className="text-slate-500">Action: {s.ctaAction}</span>
-                      <button
-                        onClick={async () => {
-                          if (window.confirm('Delete slide?')) {
-                            await deleteDoc(doc(db, 'hero_slides', s.id));
-                          }
-                        }}
-                        className="text-rose-400 hover:text-rose-300 cursor-pointer"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1706,115 +1876,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           )}
         </main>
       </div>
-
-      {/* Admin Email Sign-in Modal */}
-      {showAdminSignInModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
-          <div className="bg-[#0D1829] border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
-            <button
-              onClick={() => setShowAdminSignInModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-bold">
-                <Shield className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-display font-bold text-lg text-white">Educator Admin Sign-In</h3>
-                <p className="text-xs text-slate-400">Sign in with educator admin credentials</p>
-              </div>
-            </div>
-
-            {authError && (
-              <div className="mb-4 p-3 bg-rose-950/70 border border-rose-800 rounded-xl text-xs text-rose-300 flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{authError}</span>
-              </div>
-            )}
-
-            {/* 1-Click Google Sign-In for Admin */}
-            <button
-              type="button"
-              onClick={handleAdminGoogleSignIn}
-              disabled={isSigningIn}
-              className="w-full py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-900 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-2.5 shadow-xs disabled:opacity-60 mb-3"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
-                <path
-                  fill="#EA4335"
-                  d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"
-                />
-                <path
-                  fill="#4285F4"
-                  d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12 0 14.8s.7 5.1 1.9 7.5l3.7-2.9c-.2-.7-.4-1.4-.4-2.1z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 16.9C3.7 20.6 7.5 23.5 12 23.5z"
-                />
-              </svg>
-              <span>1-Click Sign In with Google</span>
-            </button>
-
-            <div className="flex items-center gap-3 my-3 text-slate-500 text-[11px]">
-              <div className="flex-1 h-px bg-slate-800" />
-              <span>or sign in with email credentials</span>
-              <div className="flex-1 h-px bg-slate-800" />
-            </div>
-
-            <form onSubmit={handleAdminEmailSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Admin Email
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
-                  <input
-                    type="email"
-                    required
-                    placeholder="admin@example.com"
-                    value={adminEmail}
-                    onChange={(e) => setAdminEmail(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
-                  <input
-                    type="password"
-                    required
-                    placeholder="Enter admin password"
-                    value={adminPassword}
-                    onChange={(e) => setAdminPassword(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSigningIn}
-                className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-2"
-              >
-                {isSigningIn ? 'Verifying...' : 'Sign In to Admin Console'}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
